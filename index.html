@@ -68,7 +68,8 @@
       </section>
 
       <section class="task-section" aria-label="任务列表">
-        <div class="task-heading"><div class="tabs" role="tablist"><button id="pendingTab" class="tab active" role="tab" aria-selected="true">待处理 <span id="pendingCount">0</span></button><button id="doneTab" class="tab" role="tab" aria-selected="false">已完成</button></div><span class="sort-label" id="sortLabel">按提醒时间</span></div>
+        <div class="task-heading"><div class="tabs" role="tablist"><button id="pendingTab" class="tab active" role="tab" aria-selected="true">待处理 <span id="pendingCount">0</span></button><button id="doneTab" class="tab" role="tab" aria-selected="false">已完成</button><button id="englishTab" class="tab" role="tab" aria-selected="false">英语 <span id="englishDueCount">0</span></button></div><span class="sort-label" id="sortLabel">按提醒时间</span></div>
+        <div class="english-toolbar" id="englishToolbar" hidden><input id="englishSearch" type="search" placeholder="搜索卡片" aria-label="搜索英语卡片"><button type="button" id="captureEnglish"><img src="node_modules/lucide-static/icons/plus.svg" alt="">速记</button><button type="button" id="reviewEnglish"><img src="node_modules/lucide-static/icons/brain.svg" alt="">复习</button></div>
         <div class="task-list" id="taskList"></div>
       </section>
     </main>
@@ -84,6 +85,8 @@
   <dialog id="settingsDialog" class="settings-dialog">
     <div class="dialog-heading"><h2>偏好设置</h2><button id="closeSettings" class="icon-button" title="关闭设置" aria-label="关闭设置"><img src="node_modules/lucide-static/icons/x.svg" alt=""></button></div>
     <label class="setting-row"><span><strong>桌面提醒</strong><small>到期后每小时提醒一次</small></span><input type="checkbox" id="notificationToggle"></label>
+    <label class="setting-row"><span><strong>英语复习提醒</strong><small>安静时段外，每天最多 3 次</small></span><input type="checkbox" id="englishReminderToggle"></label>
+    <div class="setting-group"><strong>英语速记快捷键</strong><select id="englishShortcut"><option value="Control+Shift+E">Ctrl + Shift + E</option><option value="Control+Alt+E">Ctrl + Alt + E</option><option value="Alt+Shift+E">Alt + Shift + E</option></select><small id="shortcutStatus"></small></div>
     <label class="setting-row"><span><strong>窗口置顶</strong><small>让助手停留在其他窗口前</small></span><input type="checkbox" id="pinToggle"></label>
     <label class="setting-row"><span><strong>开机启动</strong><small>登录系统后自动打开助手</small></span><input type="checkbox" id="loginToggle"></label>
     <div class="setting-group"><strong>外观主题</strong><div class="theme-options" role="group" aria-label="外观主题"><button type="button" data-theme="system">跟随系统</button><button type="button" data-theme="dark">深色</button><button type="button" data-theme="light">浅色</button></div></div>

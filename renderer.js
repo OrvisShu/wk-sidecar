@@ -129,13 +129,33 @@ function taskRow(task) {
 
 function renderTasks(pending, done) {
   $('pendingCount').textContent = pending.length
-  $('sortLabel').textContent = activeTab === 'pending' ? '按提醒时间' : '最近完成'
+  const cards = state.cards || []
+  const dueCount = cards.filter(card => card.back.trim() && card.schedule.due <= Date.now()).length
+  $('englishDueCount').textContent = dueCount
+  $('sortLabel').textContent = activeTab === 'pending' ? '按提醒时间' : activeTab === 'done' ? '最近完成' : `${cards.length} 张卡片`
+  $('englishToolbar').hidden = activeTab !== 'english'
+  document.querySelector('.quick-add').hidden = activeTab === 'english'
   $('pendingTab').classList.toggle('active', activeTab === 'pending')
   $('doneTab').classList.toggle('active', activeTab === 'done')
+  $('englishTab').classList.toggle('active', activeTab === 'english')
   $('pendingTab').setAttribute('aria-selected', activeTab === 'pending')
   $('doneTab').setAttribute('aria-selected', activeTab === 'done')
+  $('englishTab').setAttribute('aria-selected', activeTab === 'english')
   const list = $('taskList')
   list.replaceChildren()
+  if (activeTab === 'english') {
+    const query = $('englishSearch')?.value.trim().toLocaleLowerCase() || ''
+    const filtered = cards.filter(card => [card.front, card.back, card.example].some(value => value.toLocaleLowerCase().includes(query))).sort((a, b) => a.schedule.due - b.schedule.due)
+    if (!filtered.length) {
+      const empty = document.createElement('div')
+      empty.className = 'empty-state'
+      const strong = document.createElement('strong')
+      strong.textContent = query ? '没有找到卡片' : '还没有英语卡片'
+      empty.append(strong)
+      list.append(empty)
+    } else filtered.forEach(card => list.append(englishRow(card)))
+    return
+  }
   const tasks = activeTab === 'pending' ? pending : done
   if (!tasks.length) {
     const empty = document.createElement('div')
@@ -154,6 +174,33 @@ function renderTasks(pending, done) {
   tasks.forEach(task => list.append(taskRow(task)))
 }
 
+function englishRow(card) {
+  const row = document.createElement('div')
+  row.className = 'task-item english-item'
+  const info = document.createElement('div')
+  info.className = 'task-info'
+  const front = document.createElement('div')
+  front.className = 'task-title'
+  front.textContent = card.front
+  const meta = document.createElement('div')
+  meta.className = 'task-meta'
+  meta.textContent = !card.back.trim() ? '待补释义' : card.schedule.due <= Date.now() ? '现在可复习' : `下次 ${new Intl.DateTimeFormat('zh-CN', {month: 'numeric', day: 'numeric'}).format(card.schedule.due)}`
+  const meaning = document.createElement('div')
+  meaning.className = 'english-meaning'
+  meaning.textContent = card.back
+  info.append(front, meaning, meta)
+  const actions = document.createElement('div')
+  actions.className = 'task-actions'
+  actions.append(makeIconButton('pencil', '编辑卡片', () => window.sidecar.openEnglish('edit', card.id).catch(error => showToast(error.message))))
+  actions.append(makeIconButton('trash-2', '删除卡片', async () => {
+    if (!window.confirm(`删除“${card.front}”？`)) return
+    try { await window.sidecar.deleteEnglish(card.id); showToast('卡片已删除') }
+    catch (error) { showToast(error.message) }
+  }))
+  row.append(info, actions)
+  return row
+}
+
 function render() {
   if (!state) return
   const pending = state.tasks.filter(task => !task.completedAt).sort((a, b) => a.dueAt - b.dueAt)
@@ -169,6 +216,8 @@ function render() {
   $('pinButton').title = state.settings.alwaysOnTop ? '取消置顶' : '窗口置顶'
   $('pinToggle').checked = state.settings.alwaysOnTop
   $('notificationToggle').checked = state.settings.notifications
+  $('englishReminderToggle').checked = state.settings.englishReminders
+  $('englishShortcut').value = state.settings.englishShortcut
   $('loginToggle').checked = state.settings.openAtLogin
   $('opacitySlider').value = Math.round(state.settings.opacity * 100)
   $('opacityValue').textContent = `${Math.round(state.settings.opacity * 100)}%`
@@ -205,6 +254,10 @@ $('addForm').addEventListener('submit', async event => {
 
 $('pendingTab').addEventListener('click', () => { activeTab = 'pending'; render() })
 $('doneTab').addEventListener('click', () => { activeTab = 'done'; render() })
+$('englishTab').addEventListener('click', () => { activeTab = 'english'; render() })
+$('captureEnglish').addEventListener('click', () => window.sidecar.openEnglish('capture').catch(error => showToast(error.message)))
+$('reviewEnglish').addEventListener('click', () => window.sidecar.openEnglish('review').catch(error => showToast(error.message)))
+$('englishSearch').addEventListener('input', render)
 $('compactButton').addEventListener('click', () => window.sidecar.setCompact(true).catch(error => showToast(error.message)))
 $('expandButton').addEventListener('click', () => window.sidecar.setCompact(false).catch(error => showToast(error.message)))
 $('hideButton').addEventListener('click', () => window.sidecar.hideWindow())
@@ -213,6 +266,16 @@ $('settingsButton').addEventListener('click', () => $('settingsDialog').showModa
 $('closeSettings').addEventListener('click', () => $('settingsDialog').close())
 $('settingsDialog').addEventListener('click', event => { if (event.target === $('settingsDialog')) $('settingsDialog').close() })
 $('notificationToggle').addEventListener('change', event => window.sidecar.setSetting('notifications', event.target.checked).catch(error => showToast(error.message)))
+$('englishReminderToggle').addEventListener('change', event => window.sidecar.setSetting('englishReminders', event.target.checked).catch(error => showToast(error.message)))
+$('englishShortcut').addEventListener('change', async event => {
+  try {
+    await window.sidecar.setSetting('englishShortcut', event.target.value)
+    $('shortcutStatus').textContent = '快捷键已更新'
+  } catch (error) {
+    $('englishShortcut').value = state.settings.englishShortcut
+    $('shortcutStatus').textContent = error.message
+  }
+})
 $('pinToggle').addEventListener('change', event => window.sidecar.setSetting('alwaysOnTop', event.target.checked).catch(error => showToast(error.message)))
 $('loginToggle').disabled = !window.sidecar.canOpenAtLogin
 $('loginToggle').addEventListener('change', event => window.sidecar.setSetting('openAtLogin', event.target.checked).catch(error => showToast(error.message)))
@@ -245,5 +308,9 @@ document.addEventListener('keydown', event => {
 })
 
 window.sidecar.onStateChanged(nextState => { state = nextState; render() })
-window.sidecar.getState().then(initialState => { state = initialState; render() }).catch(error => showToast(error.message))
+window.sidecar.getState().then(async initialState => {
+  state = initialState
+  render()
+  $('shortcutStatus').textContent = await window.sidecar.getShortcutStatus() ? '' : '当前快捷键未注册，请选择其他组合'
+}).catch(error => showToast(error.message))
 setInterval(render, 30 * 1000)

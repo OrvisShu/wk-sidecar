@@ -4,6 +4,7 @@ const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 const {defaults, normalizeState, loadState, saveState} = require('../state-store')
+const {createReviewState, reviewCard} = require('../english-engine')
 
 test('saved preferences and completed task progress survive a restart', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'wk-sidecar-store-'))
@@ -68,6 +69,25 @@ test('a missing primary file can be restored from backup', () => {
     fs.rmSync(file)
     assert.equal(loadState(file).settings.theme, 'dark')
     assert.ok(fs.existsSync(file))
+  } finally {
+    fs.rmSync(directory, {recursive: true, force: true})
+  }
+})
+
+test('English cards keep their FSRS schedule through persistence', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'wk-sidecar-store-'))
+  try {
+    const file = path.join(directory, 'tasks.json')
+    const state = defaults()
+    const now = Date.now()
+    const result = reviewCard(createReviewState(now), 'hard', now)
+    state.cards.push({id: 'word', front: 'take notes', back: '记笔记', example: '', createdAt: now, updatedAt: now, schedule: result.schedule, reviews: [result.log]})
+    state.settings.englishShortcut = 'Control+Alt+E'
+    saveState(file, state)
+    const restored = loadState(file)
+    assert.equal(restored.cards[0].schedule.due, result.schedule.due)
+    assert.equal(restored.cards[0].reviews[0].rating, 'hard')
+    assert.equal(restored.settings.englishShortcut, 'Control+Alt+E')
   } finally {
     fs.rmSync(directory, {recursive: true, force: true})
   }

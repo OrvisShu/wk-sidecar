@@ -1,4 +1,5 @@
 :root { font-family: "Microsoft YaHei UI", "PingFang SC", sans-serif; color: #eef3ed; background: #192224; font-size: 13px; }
+[hidden] { display: none !important; }
 * { box-sizing: border-box; }
 html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
 button, input { font: inherit; }
@@ -99,3 +100,11 @@ button:focus-visible, input:focus-visible { outline: 2px solid #87e5ae; outline-
 .light .settings-dialog { background: #f8fbf8; color: #263b2e; border-color: #bdd4c3; }.light .setting-row, .light .setting-group, .light .evolution-guide { border-color: #d7e6d9; }.light .setting-row small, .light .evolution-guide p, .light .opacity-heading span { color: #6b8575; }
 .light .theme-options button, .light .data-actions button { color: #496a54; border-color: #bfd4c4; }.light .theme-options button.active { color: #246e43; border-color: #61b681; background: #e1f4e7; }
 .setting-row input:disabled { opacity: .35; cursor: not-allowed; }
+.english-toolbar { display: flex; gap: 5px; align-items: center; padding: 9px 13px; border-bottom: 1px solid #34453b; }
+.english-toolbar input { flex: 1; min-width: 0; height: 29px; padding: 0 8px; color: #edf5ef; background: #263630; border: 1px solid #43594a; border-radius: 4px; outline: none; }
+.english-toolbar button { display: flex; gap: 3px; align-items: center; justify-content: center; height: 29px; padding: 0 7px; border: 1px solid #63886e; border-radius: 4px; color: #b8ecc5; background: #284034; font-size: 10px; white-space: nowrap; }
+.english-toolbar button img { width: 13px; height: 13px; filter: invert(83%) sepia(17%) saturate(551%) hue-rotate(78deg); }
+.english-meaning { color: #9eb7a6; font-size: 11px; margin-top: 4px; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#englishShortcut { display: block; width: 100%; height: 30px; margin-top: 10px; border: 1px solid #53665b; border-radius: 4px; background: #2b3d32; color: #e7f4ea; padding: 0 7px; }
+#shortcutStatus { display: block; min-height: 12px; color: #e6ad7d; margin-top: 6px; font-size: 10px; }
+.light .english-toolbar { border-color: #d9e7dc; }.light .english-toolbar input { background: #fff; color: #243c2d; border-color: #bdd3c2; }.light .english-toolbar button { background: #e2f3e5; color: #397149; }.light .english-meaning { color: #64826b; }.light #englishShortcut { background: #fff; color: #2b5038; border-color: #bfd4c4; }

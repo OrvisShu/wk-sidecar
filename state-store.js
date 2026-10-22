@@ -6,11 +6,13 @@ const DEFAULT_SETTINGS = Object.freeze({
   compact: false,
   theme: 'system',
   opacity: 1,
-  openAtLogin: false
+  openAtLogin: false,
+  englishShortcut: 'Control+Shift+E',
+  englishReminders: true
 })
 
 function defaults() {
-  return {tasks: [], xp: 0, completedCount: 0, settings: {...DEFAULT_SETTINGS}, windowPosition: null}
+  return {tasks: [], cards: [], reviewReminder: {day: '', count: 0, lastAt: 0}, xp: 0, completedCount: 0, settings: {...DEFAULT_SETTINGS}, windowPosition: null}
 }
 
 function normalizeState(saved) {
@@ -27,16 +29,32 @@ function normalizeState(saved) {
   }))
   const raw = saved.settings && typeof saved.settings === 'object' ? saved.settings : {}
   const settings = {...DEFAULT_SETTINGS}
-  for (const key of ['notifications', 'alwaysOnTop', 'compact', 'openAtLogin']) {
+  for (const key of ['notifications', 'alwaysOnTop', 'compact', 'openAtLogin', 'englishReminders']) {
     if (typeof raw[key] === 'boolean') settings[key] = raw[key]
   }
   if (['system', 'dark', 'light'].includes(raw.theme)) settings.theme = raw.theme
   if (Number.isFinite(raw.opacity)) settings.opacity = Math.max(0.65, Math.min(1, raw.opacity))
+  if (['Control+Shift+E', 'Control+Alt+E', 'Alt+Shift+E'].includes(raw.englishShortcut)) settings.englishShortcut = raw.englishShortcut
+  const scheduleNumbers = ['due', 'stability', 'difficulty', 'elapsed_days', 'scheduled_days', 'reps', 'lapses', 'learning_steps', 'state']
+  const cards = Array.isArray(saved.cards) ? saved.cards.filter(card => card && typeof card.id === 'string' && typeof card.front === 'string' && typeof card.back === 'string' && Number.isFinite(card.createdAt) && card.schedule && scheduleNumbers.every(key => Number.isFinite(card.schedule[key])) && (card.schedule.last_review == null || Number.isFinite(card.schedule.last_review))).map(card => ({
+    id: card.id,
+    front: card.front.slice(0, 300),
+    back: card.back.slice(0, 500),
+    example: typeof card.example === 'string' ? card.example.slice(0, 500) : '',
+    createdAt: card.createdAt,
+    updatedAt: Number.isFinite(card.updatedAt) ? card.updatedAt : card.createdAt,
+    schedule: Object.fromEntries([...scheduleNumbers, 'last_review'].map(key => [key, card.schedule[key] ?? null])),
+    reviews: Array.isArray(card.reviews) ? card.reviews.filter(log => log && ['again', 'hard', 'good', 'easy'].includes(log.rating) && Number.isFinite(log.reviewedAt) && Number.isFinite(log.nextDueAt)).slice(-100) : []
+  })) : []
+  const reminder = saved.reviewReminder && typeof saved.reviewReminder === 'object' ? saved.reviewReminder : {}
+  const reviewReminder = {day: typeof reminder.day === 'string' ? reminder.day : '', count: Number.isInteger(reminder.count) && reminder.count >= 0 ? reminder.count : 0, lastAt: Number.isFinite(reminder.lastAt) ? reminder.lastAt : 0}
   const position = saved.windowPosition
   const windowPosition = position && Number.isFinite(position.x) && Number.isFinite(position.y) ? {x: position.x, y: position.y} : null
   const completed = tasks.filter(task => task.completedAt)
   return {
     tasks,
+    cards,
+    reviewReminder,
     xp: completed.reduce((total, task) => total + (task.earnedXp || 20), 0),
     completedCount: completed.length,
     settings,

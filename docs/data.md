@@ -28,6 +28,17 @@
     "snoozedUntil": null,
     "lastNotifiedAt": null
   }],
+  "cards": [{
+    "id": "uuid",
+    "front": "take notes",
+    "back": "记笔记",
+    "example": "",
+    "createdAt": 1760000000000,
+    "updatedAt": 1760000000000,
+    "schedule": {"due": 1760000000000, "stability": 0, "difficulty": 0, "elapsed_days": 0, "scheduled_days": 0, "reps": 0, "lapses": 0, "learning_steps": 0, "state": 0, "last_review": null},
+    "reviews": []
+  }],
+  "reviewReminder": {"day": "", "count": 0, "lastAt": 0},
   "xp": 0,
   "completedCount": 0,
   "settings": {
@@ -36,7 +47,9 @@
     "compact": false,
     "theme": "system",
     "opacity": 1,
-    "openAtLogin": false
+    "openAtLogin": false,
+    "englishShortcut": "Control+Shift+E",
+    "englishReminders": true
   },
   "windowPosition": {"x": 100, "y": 100}
 }
@@ -52,7 +65,7 @@
 
 ## 导入、导出与手动恢复
 
-导出文件包含完整状态。导入时会校验文件并要求确认，**只替换任务、经验和完成数**，保留本设备的窗口位置与偏好。导入前的当前状态会留下独立快照。
+导出文件包含完整状态。导入时会校验文件并要求确认，**替换任务、英语卡片、经验和复习提示计数**，保留本设备的窗口位置与偏好。导入前的当前状态会留下独立快照。
 
 要手动恢复 `.bak` 或导入前快照：先从托盘彻底退出程序，再备份当前 `tasks.json`，将目标文件复制为 `tasks.json`，最后重启。不要在程序运行时直接编辑数据文件，否则下一次应用写入可能覆盖手工修改。
 

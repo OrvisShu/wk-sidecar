@@ -7,10 +7,14 @@
 | `main.js` | Electron 生命周期、窗口、托盘、系统通知、IPC 和操作系统能力 |
 | `preload.js` | 向页面暴露最小权限的 IPC 接口 |
 | `task-engine.js` | 阶段、提醒时间和经验计算的纯规则；主进程与页面共用 |
+| `english-engine.js` | FSRS 包装、到期查询与提示频率规则 |
 | `state-store.js` | 状态默认值、旧数据兼容、校验、备份和恢复 |
 | `renderer.js`、`index.html`、`styles.css` | 界面、交互与主题；不直接访问文件系统 |
+| `english-window.js`、`english.html`、`english.css` | 速记、编辑与复习小窗 |
 
 新增任务规则时只在 `task-engine.js` 实现，并补边界测试。新增持久化字段时同时修改 `state-store.js` 的默认值、规范化和测试。新增主进程能力时经过 `preload.js` 的明确接口暴露，IPC 参数必须在主进程校验。页面渲染用户输入使用 `textContent`，避免把任务文本当成 HTML。
+
+英语卡片的评分只由主进程调用 `english-engine.js` 完成。`schedule` 存储数值型时间戳，送入 `ts-fsrs` 前恢复为 `Date`；不要在页面重新计算间隔。未填释义的卡片只作草稿，不进入复习和通知队列。修改提醒规则时同步检查安静时段、间隔和每日上限测试。
 
 不要在页面或主进程另写一份阶段/经验公式。修改托盘、置顶、透明度、开机启动等操作系统行为时，验证开发版和打包版；打包版应继续使用固定的 `wk-sidecar` 数据目录。
 

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'">
+  <title>英语卡片</title>
+  <link rel="stylesheet" href="english.css">
+</head>
+<body>
+  <main class="sheet">
+    <header><div class="heading"><span class="mark">✦</span><div><small>ENGLISH NOTES</small><h1 id="heading">速记英语</h1></div></div><button id="closeButton" class="icon" type="button" title="关闭" aria-label="关闭"><img src="node_modules/lucide-static/icons/x.svg" alt=""></button></header>
+    <form id="cardForm">
+      <label for="front">英语内容 <span>单词 / 短语 / 句子</span></label>
+      <textarea id="front" maxlength="300" rows="3" placeholder="What would you like to remember?" required></textarea>
+      <label for="back">中文释义 <span>可以稍后补充</span></label>
+      <textarea id="back" maxlength="500" rows="3" placeholder="它是什么意思？"></textarea>
+      <label for="example">例句或语境 <span>选填</span></label>
+      <input id="example" maxlength="500" placeholder="在哪个语境下遇到的？">
+      <div class="form-actions"><button type="button" id="cancelButton">取消</button><button type="submit" id="saveButton">保存卡片</button></div>
+    </form>
+    <section id="reviewPane" hidden>
+      <div class="review-count" id="reviewCount">今日待复习</div>
+      <div class="review-front" id="reviewFront"></div>
+      <div class="review-answer" id="reviewAnswer" hidden><strong id="reviewBack"></strong><p id="reviewExample"></p></div>
+      <button type="button" id="revealButton" class="primary">显示释义</button>
+      <div class="ratings" id="ratings" hidden><button data-rating="again">忘记</button><button data-rating="hard">困难</button><button data-rating="good">记得</button><button data-rating="easy">很容易</button></div>
+      <p id="emptyReview" hidden>暂时没有到期卡片。</p>
+    </section>
+    <div id="message" role="status" aria-live="polite"></div>
+  </main>
+  <script src="english-window.js"></script>
+</body>
+</html>

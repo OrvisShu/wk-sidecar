@@ -16,6 +16,7 @@
     "electron": "^43.8.3"
   },
   "dependencies": {
-    "lucide-static": "^1.61.0"
+    "lucide-static": "^1.61.0",
+    "ts-fsrs": "^5.4.2"
   }
 }

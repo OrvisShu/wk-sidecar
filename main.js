@@ -1,15 +1,18 @@
-const {app, BrowserWindow, Tray, Menu, Notification, ipcMain, nativeImage, screen, nativeTheme, shell, dialog} = require('electron')
+const {app, BrowserWindow, Tray, Menu, Notification, ipcMain, nativeImage, screen, nativeTheme, shell, dialog, globalShortcut} = require('electron')
 const fs = require('fs')
 const path = require('path')
 const zlib = require('zlib')
 const {STAGES, HOUR, stageFor, nextReminderAt} = require('./task-engine')
 const {loadState, saveState: writeState, normalizeState} = require('./state-store')
+const {createReviewState, reviewCard, dueCards, shouldPrompt} = require('./english-engine')
 
 const EXPANDED = {width: 390, height: 690}
 const COMPACT = {width: 350, height: 174}
 const PRAISE = ['漂亮的一击！事情又向前推进了。', '干得好，这只怪物已经被你收服。', '任务完成，今天的你又强了一点。', '清掉一件心事，继续保持节奏。']
 let win
 let tray
+let englishWin
+let shortcutRegistered = false
 let state
 let dataPath
 let quitting = false
@@ -33,10 +36,51 @@ function applyAppearance() {
     win.setAlwaysOnTop(state.settings.alwaysOnTop)
     win.setOpacity(state.settings.opacity)
   }
+  if (englishWin && !englishWin.isDestroyed()) englishWin.setOpacity(state.settings.opacity)
 }
 
 function publish() {
   if (win && !win.isDestroyed()) win.webContents.send('state:changed', state)
+  if (englishWin && !englishWin.isDestroyed()) englishWin.webContents.send('state:changed', state)
+}
+
+function showEnglishWindow(mode = 'capture', id = '') {
+  const query = new URLSearchParams({mode, id}).toString()
+  if (englishWin && !englishWin.isDestroyed()) {
+    if (englishWin.webContents.getURL().includes(query)) {
+      englishWin.show()
+      englishWin.focus()
+      return
+    }
+    englishWin.close()
+  }
+  englishWin = new BrowserWindow({
+    width: 430,
+    height: mode === 'review' ? 480 : 530,
+    minWidth: 430,
+    minHeight: mode === 'review' ? 480 : 530,
+    resizable: false,
+    title: mode === 'review' ? '英语复习' : mode === 'edit' ? '编辑英语卡片' : '速记英语',
+    icon: path.join(__dirname, 'assets', 'icon.png'),
+    alwaysOnTop: true,
+    show: false,
+    backgroundColor: '#192224',
+    webPreferences: {preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false}
+  })
+  englishWin.setOpacity(state.settings.opacity)
+  englishWin.loadFile('english.html', {query: {mode, id}})
+  englishWin.once('ready-to-show', () => { englishWin.show(); englishWin.focus() })
+  const created = englishWin
+  englishWin.on('closed', () => { if (englishWin === created) englishWin = null })
+}
+
+function registerEnglishShortcut(accelerator) {
+  const old = state.settings.englishShortcut
+  if (shortcutRegistered) globalShortcut.unregister(old)
+  const success = globalShortcut.register(accelerator, () => showEnglishWindow('capture'))
+  if (!success && shortcutRegistered && accelerator !== old) globalShortcut.register(old, () => showEnglishWindow('capture'))
+  shortcutRegistered = success || globalShortcut.isRegistered(old)
+  return success
 }
 
 function mutate(change) {
@@ -153,8 +197,67 @@ function notifyDueTasks() {
   publish()
 }
 
+function notifyEnglishReview() {
+  if (!state.settings.englishReminders) return
+  const now = Date.now()
+  if (!shouldPrompt(state.cards, state.reviewReminder, now)) return
+  const count = dueCards(state.cards, now).length
+  if (Notification.isSupported()) {
+    const notification = new Notification({title: `有 ${count} 张英语卡片待复习`, body: '准备好时点开，花一点时间回想。'})
+    notification.on('click', () => showEnglishWindow('review'))
+    notification.show()
+  }
+  mutate(() => {
+    const day = new Date(now).toLocaleDateString('en-CA')
+    state.reviewReminder = {day, count: state.reviewReminder.day === day ? state.reviewReminder.count + 1 : 1, lastAt: now}
+  })
+}
+
 function registerIpc() {
   ipcMain.handle('state:get', () => state)
+  ipcMain.handle('english:shortcut-status', () => shortcutRegistered)
+  ipcMain.handle('english:open', (_event, mode, id = '') => {
+    if (!['capture', 'review', 'edit'].includes(mode) || mode === 'edit' && !state.cards.some(card => card.id === id)) throw new Error('无效窗口类型')
+    showEnglishWindow(mode, id)
+  })
+  ipcMain.handle('english:add', (_event, input) => {
+    const front = typeof input?.front === 'string' ? input.front.trim() : ''
+    const back = typeof input?.back === 'string' ? input.back.trim() : ''
+    const example = typeof input?.example === 'string' ? input.example.trim() : ''
+    if (!front || front.length > 300 || back.length > 500 || example.length > 500) throw new Error('请输入英语内容，文本长度不超过限制')
+    return mutate(() => {
+      const now = Date.now()
+      const card = {id: crypto.randomUUID(), front, back, example, createdAt: now, updatedAt: now, schedule: createReviewState(now), reviews: []}
+      state.cards.unshift(card)
+      return card
+    })
+  })
+  ipcMain.handle('english:update', (_event, id, input) => {
+    const front = typeof input?.front === 'string' ? input.front.trim() : ''
+    const back = typeof input?.back === 'string' ? input.back.trim() : ''
+    const example = typeof input?.example === 'string' ? input.example.trim() : ''
+    if (!front || front.length > 300 || back.length > 500 || example.length > 500) throw new Error('请输入英语内容，文本长度不超过限制')
+    return mutate(() => {
+      const card = state.cards.find(item => item.id === id)
+      if (!card) throw new Error('卡片不存在')
+      Object.assign(card, {front, back, example, updatedAt: Date.now()})
+      return card
+    })
+  })
+  ipcMain.handle('english:delete', (_event, id) => mutate(() => {
+    const index = state.cards.findIndex(item => item.id === id)
+    if (index < 0) throw new Error('卡片不存在')
+    state.cards.splice(index, 1)
+  }))
+  ipcMain.handle('english:review', (_event, id, rating) => mutate(() => {
+    const card = state.cards.find(item => item.id === id)
+    if (!card || !card.back.trim() || card.schedule.due > Date.now()) throw new Error('卡片暂不可复习')
+    const result = reviewCard(card.schedule, rating)
+    card.schedule = result.schedule
+    card.reviews.push(result.log)
+    card.reviews = card.reviews.slice(-100)
+    return {nextDueAt: result.schedule.due}
+  }))
   ipcMain.handle('task:add', (_event, input) => {
     const title = typeof input?.title === 'string' ? input.title.trim() : ''
     const dueAt = Number(input?.dueAt)
@@ -198,10 +301,12 @@ function registerIpc() {
     task.snoozedUntil = Date.now() + 30 * 60 * 1000
   }))
   ipcMain.handle('setting:set', (_event, key, value) => {
-    const booleanSetting = ['notifications', 'alwaysOnTop', 'openAtLogin'].includes(key) && typeof value === 'boolean'
+    const booleanSetting = ['notifications', 'alwaysOnTop', 'openAtLogin', 'englishReminders'].includes(key) && typeof value === 'boolean'
     const themeSetting = key === 'theme' && ['system', 'dark', 'light'].includes(value)
     const opacitySetting = key === 'opacity' && typeof value === 'number' && Number.isFinite(value) && value >= 0.65 && value <= 1
-    if (!booleanSetting && !themeSetting && !opacitySetting) throw new Error('无效设置')
+    const shortcutSetting = key === 'englishShortcut' && ['Control+Shift+E', 'Control+Alt+E', 'Alt+Shift+E'].includes(value)
+    if (!booleanSetting && !themeSetting && !opacitySetting && !shortcutSetting) throw new Error('无效设置')
+    if (shortcutSetting && value !== state.settings.englishShortcut && !registerEnglishShortcut(value)) throw new Error('快捷键被其他程序占用，请选择其他组合')
     return mutate(() => {
       state.settings[key] = value
       if (key === 'openAtLogin') updateLoginItem()
@@ -219,11 +324,13 @@ function registerIpc() {
     const result = await dialog.showOpenDialog(win, {title: '导入待办数据', properties: ['openFile'], filters: [{name: 'JSON 文件', extensions: ['json']}]})
     if (result.canceled || !result.filePaths[0]) return false
     const imported = normalizeState(JSON.parse(fs.readFileSync(result.filePaths[0], 'utf8')))
-    const confirmation = await dialog.showMessageBox(win, {type: 'warning', buttons: ['取消', '导入'], defaultId: 0, cancelId: 0, title: '导入待办数据', message: `将用导入文件中的 ${imported.tasks.length} 条任务替换当前任务和经验。当前数据会另存一份快照。`})
+    const confirmation = await dialog.showMessageBox(win, {type: 'warning', buttons: ['取消', '导入'], defaultId: 0, cancelId: 0, title: '导入待办数据', message: `将用导入文件中的 ${imported.tasks.length} 条任务和 ${imported.cards.length} 张英语卡片替换当前内容。当前数据会另存一份快照。`})
     if (confirmation.response !== 1) return false
     fs.copyFileSync(dataPath, `${dataPath}.before-import-${Date.now()}.json`)
     mutate(() => {
       state.tasks = imported.tasks
+      state.cards = imported.cards
+      state.reviewReminder = imported.reviewReminder
       state.xp = imported.xp
       state.completedCount = imported.completedCount
     })
@@ -258,6 +365,7 @@ if (!app.requestSingleInstanceLock()) {
     updateLoginItem()
     registerIpc()
     createWindow()
+    registerEnglishShortcut(state.settings.englishShortcut)
     tray = new Tray(trayImage())
     tray.setToolTip('打怪待办')
     tray.setContextMenu(Menu.buildFromTemplate([
@@ -266,7 +374,11 @@ if (!app.requestSingleInstanceLock()) {
     ]))
     tray.on('double-click', showWindow)
     notifyDueTasks()
+    notifyEnglishReview()
     setInterval(notifyDueTasks, 30 * 1000)
+    setInterval(notifyEnglishReview, 60 * 1000)
     app.on('activate', showWindow)
   })
 }
+
+app.on('will-quit', () => globalShortcut.unregisterAll())

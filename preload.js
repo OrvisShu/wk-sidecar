@@ -3,6 +3,12 @@ const {contextBridge, ipcRenderer} = require('electron')
 contextBridge.exposeInMainWorld('sidecar', {
   canOpenAtLogin: process.platform === 'win32' || process.platform === 'darwin',
   getState: () => ipcRenderer.invoke('state:get'),
+  getShortcutStatus: () => ipcRenderer.invoke('english:shortcut-status'),
+  openEnglish: (mode, id) => ipcRenderer.invoke('english:open', mode, id),
+  addEnglish: input => ipcRenderer.invoke('english:add', input),
+  updateEnglish: (id, input) => ipcRenderer.invoke('english:update', id, input),
+  deleteEnglish: id => ipcRenderer.invoke('english:delete', id),
+  reviewEnglish: (id, rating) => ipcRenderer.invoke('english:review', id, rating),
   addTask: input => ipcRenderer.invoke('task:add', input),
   completeTask: id => ipcRenderer.invoke('task:complete', id),
   undoTask: id => ipcRenderer.invoke('task:undo', id),
