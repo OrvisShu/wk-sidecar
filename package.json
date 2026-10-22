@@ -1,0 +1,21 @@
+{
+  "name": "wk-sidecar",
+  "version": "1.0.0",
+  "description": "悬浮桌面的打怪待办助手",
+  "license": "MIT",
+  "author": "Orvis",
+  "type": "commonjs",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test",
+    "package": "node scripts/package.js"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^43.8.3"
+  },
+  "dependencies": {
+    "lucide-static": "^1.61.0"
+  }
+}

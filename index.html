@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; script-src 'self'; style-src 'self'">
+  <title>打怪待办</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="titlebar">
+      <div class="brand"><span class="brand-mark">✦</span><span>打怪待办</span><span class="brand-sub">WORK SIDEKICK</span></div>
+      <div class="window-actions">
+        <button class="icon-button" id="pinButton" title="取消置顶" aria-label="切换窗口置顶"><img src="node_modules/lucide-static/icons/pin.svg" alt=""></button>
+        <button class="icon-button" id="settingsButton" title="设置" aria-label="设置"><img src="node_modules/lucide-static/icons/settings-2.svg" alt=""></button>
+        <button class="icon-button" id="compactButton" title="收起" aria-label="收起窗口"><img src="node_modules/lucide-static/icons/chevron-down.svg" alt=""></button>
+        <button class="icon-button" id="hideButton" title="隐藏到托盘" aria-label="隐藏到托盘"><img src="node_modules/lucide-static/icons/x.svg" alt=""></button>
+      </div>
+    </header>
+
+    <main class="expanded-content">
+      <section class="encounter" id="encounter" data-stage="0">
+        <div class="encounter-copy">
+          <div class="overline"><span class="status-dot"></span><span id="stageName">当前平静</span></div>
+          <h1 id="encounterTitle">今天，先迈出一步。</h1>
+          <p id="encounterNote">记下一件事，让它有一个开始。</p>
+          <div class="stage-track" aria-label="怪物进化阶段"><span></span><span></span><span></span><span></span></div>
+        </div>
+        <div class="monster-scene" aria-hidden="true">
+          <svg class="monster" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+            <ellipse class="shadow" cx="90" cy="153" rx="53" ry="9"/>
+            <path class="wing wing-left" d="M50 83 Q12 47 14 101 Q22 118 54 110Z"/>
+            <path class="wing wing-right" d="M130 83 Q168 47 166 101 Q158 118 126 110Z"/>
+            <path class="horn horn-left" d="M58 62 Q44 38 49 25 Q68 37 72 57Z"/>
+            <path class="horn horn-right" d="M122 62 Q136 38 131 25 Q112 37 108 57Z"/>
+            <path class="crown" d="M58 48 L55 17 L76 32 L91 10 L106 32 L127 17 L123 48Z"/>
+            <path class="body" d="M90 43 C125 43 145 68 142 103 C140 134 124 150 90 150 C56 150 40 134 38 103 C35 68 55 43 90 43Z"/>
+            <ellipse class="belly" cx="90" cy="112" rx="30" ry="26"/>
+            <ellipse class="eye" cx="70" cy="89" rx="5" ry="7"/>
+            <ellipse class="eye" cx="110" cy="89" rx="5" ry="7"/>
+            <path class="mouth" d="M79 109 Q90 119 101 109" fill="none" stroke-width="4" stroke-linecap="round"/>
+            <path class="fang" d="M78 109 L82 116 L86 109 M94 109 L98 116 L102 109"/>
+            <circle class="blush" cx="54" cy="103" r="6"/><circle class="blush" cx="126" cy="103" r="6"/>
+            <path class="spark" d="M145 36 L148 47 L159 50 L148 53 L145 64 L142 53 L131 50 L142 47Z"/>
+          </svg>
+        </div>
+      </section>
+
+      <section class="progress-band" aria-label="成长进度">
+        <div class="level-badge"><span>LV</span><strong id="level">1</strong></div>
+        <div class="progress-main"><div class="progress-label"><strong>冒险经验</strong><span id="xpText">0 / 100 XP</span></div><div class="progress-rail"><div id="xpFill"></div></div></div>
+        <div class="completed-stat"><strong id="completedCount">0</strong><span>已击败</span></div>
+      </section>
+
+      <section class="quick-add" aria-label="快速记录">
+        <form id="addForm">
+          <label for="taskInput">快速记录</label>
+          <div class="input-row"><input id="taskInput" maxlength="120" placeholder="此刻想处理什么？" autocomplete="off" required><button class="add-button" type="submit" title="添加待办" aria-label="添加待办"><img src="node_modules/lucide-static/icons/plus.svg" alt=""></button></div>
+          <div class="due-options" role="group" aria-label="提醒时间">
+            <button type="button" class="due-option active" data-due="hour">1 小时</button>
+            <button type="button" class="due-option" data-due="three">3 小时</button>
+            <button type="button" class="due-option" data-due="tomorrow">明天</button>
+            <button type="button" class="due-option" data-due="custom">自定义</button>
+          </div>
+          <input id="customDue" type="datetime-local" aria-label="自定义提醒时间" hidden>
+        </form>
+      </section>
+
+      <section class="task-section" aria-label="任务列表">
+        <div class="task-heading"><div class="tabs" role="tablist"><button id="pendingTab" class="tab active" role="tab" aria-selected="true">待处理 <span id="pendingCount">0</span></button><button id="doneTab" class="tab" role="tab" aria-selected="false">已完成</button></div><span class="sort-label" id="sortLabel">按提醒时间</span></div>
+        <div class="task-list" id="taskList"></div>
+      </section>
+    </main>
+
+    <div class="compact-content">
+      <div class="compact-monster" id="compactMonster">✦</div>
+      <div class="compact-copy"><span id="compactLabel">任务清零</span><strong id="compactTitle">今天也有好状态</strong><small id="compactMeta">随时记录一件待办</small></div>
+      <button class="compact-open" id="expandButton" title="展开" aria-label="展开窗口"><img src="node_modules/lucide-static/icons/chevron-up.svg" alt=""></button>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <dialog id="settingsDialog" class="settings-dialog">
+    <div class="dialog-heading"><h2>偏好设置</h2><button id="closeSettings" class="icon-button" title="关闭设置" aria-label="关闭设置"><img src="node_modules/lucide-static/icons/x.svg" alt=""></button></div>
+    <label class="setting-row"><span><strong>桌面提醒</strong><small>到期后每小时提醒一次</small></span><input type="checkbox" id="notificationToggle"></label>
+    <label class="setting-row"><span><strong>窗口置顶</strong><small>让助手停留在其他窗口前</small></span><input type="checkbox" id="pinToggle"></label>
+    <label class="setting-row"><span><strong>开机启动</strong><small>登录系统后自动打开助手</small></span><input type="checkbox" id="loginToggle"></label>
+    <div class="setting-group"><strong>外观主题</strong><div class="theme-options" role="group" aria-label="外观主题"><button type="button" data-theme="system">跟随系统</button><button type="button" data-theme="dark">深色</button><button type="button" data-theme="light">浅色</button></div></div>
+    <div class="setting-group"><div class="opacity-heading"><label for="opacitySlider">窗口透明度</label><span id="opacityValue">100%</span></div><input type="range" id="opacitySlider" min="65" max="100" step="5" value="100"></div>
+    <div class="setting-group data-group"><strong>本地数据</strong><div class="data-actions"><button type="button" id="openDataFolder">打开目录</button><button type="button" id="exportData">导出</button><button type="button" id="importData">导入</button></div></div>
+    <div class="evolution-guide"><strong>怪物进化</strong><p>到期出现 · 1 小时成长 · 6 小时暴走 · 24 小时成为 Boss</p></div>
+  </dialog>
+  <script src="task-engine.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>
