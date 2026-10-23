@@ -20,6 +20,7 @@
     </header>
 
     <main class="expanded-content">
+      <div class="task-heading"><div class="tabs" role="tablist"><button id="pendingTab" class="tab active" role="tab" aria-selected="true">待处理 <span id="pendingCount">0</span></button><button id="doneTab" class="tab" role="tab" aria-selected="false">已完成</button><button id="englishTab" class="tab" role="tab" aria-selected="false">英语 <span id="englishDueCount">0</span></button></div><span class="sort-label" id="sortLabel">按提醒时间</span></div>
       <section class="encounter" id="encounter" data-stage="0">
         <div class="encounter-copy">
           <div class="overline"><span class="status-dot"></span><span id="stageName">当前平静</span></div>
@@ -67,8 +68,7 @@
         </form>
       </section>
 
-      <section class="task-section" aria-label="任务列表">
-        <div class="task-heading"><div class="tabs" role="tablist"><button id="pendingTab" class="tab active" role="tab" aria-selected="true">待处理 <span id="pendingCount">0</span></button><button id="doneTab" class="tab" role="tab" aria-selected="false">已完成</button><button id="englishTab" class="tab" role="tab" aria-selected="false">英语 <span id="englishDueCount">0</span></button></div><span class="sort-label" id="sortLabel">按提醒时间</span></div>
+      <section class="task-section" aria-label="内容列表">
         <div class="english-toolbar" id="englishToolbar" hidden><input id="englishSearch" type="search" placeholder="搜索卡片" aria-label="搜索英语卡片"><button type="button" id="captureEnglish"><img src="node_modules/lucide-static/icons/plus.svg" alt="">速记</button><button type="button" id="reviewEnglish"><img src="node_modules/lucide-static/icons/brain.svg" alt="">复习</button></div>
         <div class="task-list" id="taskList"></div>
       </section>

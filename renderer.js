@@ -134,7 +134,7 @@ function renderTasks(pending, done) {
   $('englishDueCount').textContent = dueCount
   $('sortLabel').textContent = activeTab === 'pending' ? '按提醒时间' : activeTab === 'done' ? '最近完成' : `${cards.length} 张卡片`
   $('englishToolbar').hidden = activeTab !== 'english'
-  document.querySelector('.quick-add').hidden = activeTab === 'english'
+  document.querySelector('.quick-add').hidden = activeTab !== 'pending'
   $('pendingTab').classList.toggle('active', activeTab === 'pending')
   $('doneTab').classList.toggle('active', activeTab === 'done')
   $('englishTab').classList.toggle('active', activeTab === 'english')
@@ -212,6 +212,7 @@ function render() {
   $('completedCount').textContent = state.completedCount
   document.body.classList.toggle('light', state.settings.theme === 'light' || (state.settings.theme === 'system' && !systemTheme.matches))
   $('app').classList.toggle('compact', state.settings.compact)
+  $('app').dataset.view = activeTab
   $('pinButton').classList.toggle('is-off', !state.settings.alwaysOnTop)
   $('pinButton').title = state.settings.alwaysOnTop ? '取消置顶' : '窗口置顶'
   $('pinToggle').checked = state.settings.alwaysOnTop
