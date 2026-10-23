@@ -1,19 +1,24 @@
 # 开发约定
 
-## 模块边界
+## 目录与模块边界
+
+根目录只放项目配置、许可证和 README。应用代码统一放在 `src/`，资源、文档、开发脚本和测试分别放在 `assets/`、`docs/`、`scripts/` 和 `test/`。新增窗口在 `src/renderer/` 下建立独立目录，同一窗口的 HTML、CSS 和页面脚本放在一起。
 
 | 文件 | 职责 |
 | --- | --- |
-| `main.js` | Electron 生命周期、窗口、托盘、系统通知、IPC 和操作系统能力 |
-| `preload.js` | 向页面暴露最小权限的 IPC 接口 |
-| `task-engine.js` | 阶段、提醒时间和经验计算的纯规则；主进程与页面共用 |
-| `english-engine.js` | FSRS 包装、到期查询与提示频率规则 |
-| `dock-engine.js`、`dock.html`、`dock.js` | 贴边几何规则与边缘把手 |
-| `state-store.js` | 状态默认值、旧数据兼容、校验、备份和恢复 |
-| `renderer.js`、`index.html`、`styles.css` | 界面、交互与主题；不直接访问文件系统 |
-| `english-window.js`、`english.html`、`english.css` | 速记、编辑与复习小窗 |
+| `src/main/main.js` | Electron 生命周期、窗口、托盘、系统通知、IPC 和操作系统能力 |
+| `src/main/preload.js` | 向页面暴露最小权限的 IPC 接口 |
+| `src/main/state-store.js` | 状态默认值、旧数据兼容、校验、备份和恢复 |
+| `src/shared/task-engine.js` | 阶段、提醒时间和经验计算的纯规则；主进程与主窗口共用 |
+| `src/shared/english-engine.js` | FSRS 包装、到期查询与提示频率规则 |
+| `src/shared/dock-engine.js` | 贴边几何规则 |
+| `src/renderer/main/` | 主窗口界面、交互与主题 |
+| `src/renderer/english/` | 速记、编辑与复习窗口 |
+| `src/renderer/dock/` | 屏幕边缘把手窗口 |
 
-新增任务规则时只在 `task-engine.js` 实现，并补边界测试。新增持久化字段时同时修改 `state-store.js` 的默认值、规范化和测试。新增主进程能力时经过 `preload.js` 的明确接口暴露，IPC 参数必须在主进程校验。页面渲染用户输入使用 `textContent`，避免把任务文本当成 HTML。
+`shared/` 不依赖 Electron、DOM 或本地数据路径，可由 Node 测试直接导入。`renderer/` 只通过 preload 暴露的接口请求系统能力；主进程用绝对路径加载页面。页面引用其他目录的资源时，按当前 HTML 所在目录计算相对路径。移动入口或页面后同步检查 `package.json`、打包脚本、图标路径和测试引用。
+
+新增任务规则时只在 `src/shared/task-engine.js` 实现，并补边界测试。新增持久化字段时同时修改 `src/main/state-store.js` 的默认值、规范化和测试。新增主进程能力时经过 `src/main/preload.js` 的明确接口暴露，IPC 参数必须在主进程校验。页面渲染用户输入使用 `textContent`，避免把任务文本当成 HTML。
 
 英语卡片的评分只由主进程调用 `english-engine.js` 完成。`schedule` 存储数值型时间戳，送入 `ts-fsrs` 前恢复为 `Date`；不要在页面重新计算间隔。未填释义的卡片只作草稿，不进入复习和通知队列。修改提醒规则时同步检查安静时段、间隔和每日上限测试。
 

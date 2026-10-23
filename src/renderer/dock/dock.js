@@ -1,6 +1,6 @@
 const edge = new URLSearchParams(location.search).get('edge') === 'right' ? 'right' : 'left'
 document.body.classList.toggle('right', edge === 'right')
-document.getElementById('arrow').src = `node_modules/lucide-static/icons/chevron-${edge === 'left' ? 'right' : 'left'}.svg`
+document.getElementById('arrow').src = `../../../node_modules/lucide-static/icons/chevron-${edge === 'left' ? 'right' : 'left'}.svg`
 
 function render(state) {
   const light = state.settings.theme === 'light' || state.settings.theme === 'system' && !matchMedia('(prefers-color-scheme: dark)').matches

@@ -2,10 +2,12 @@ const {app, BrowserWindow, Tray, Menu, Notification, ipcMain, nativeImage, scree
 const fs = require('fs')
 const path = require('path')
 const zlib = require('zlib')
-const {STAGES, HOUR, stageFor, nextReminderAt} = require('./task-engine')
+const {STAGES, HOUR, stageFor, nextReminderAt} = require('../shared/task-engine')
 const {loadState, saveState: writeState, normalizeState} = require('./state-store')
-const {createReviewState, reviewCard, reviewReward, dueCards, shouldPrompt} = require('./english-engine')
-const {HANDLE_SIZE, edgeForBounds, expandedPosition, handlePosition} = require('./dock-engine')
+const {createReviewState, reviewCard, reviewReward, dueCards, shouldPrompt} = require('../shared/english-engine')
+const {HANDLE_SIZE, edgeForBounds, expandedPosition, handlePosition} = require('../shared/dock-engine')
+
+const rendererPath = (...parts) => path.join(__dirname, '..', 'renderer', ...parts)
 
 const EXPANDED = {width: 390, height: 690}
 const COMPACT = {width: 350, height: 174}
@@ -77,14 +79,14 @@ function showEnglishWindow(mode = 'capture', id = '') {
     frame: false,
     resizable: false,
     title: mode === 'review' ? '英语复习' : mode === 'edit' ? '编辑英语卡片' : '速记英语',
-    icon: path.join(__dirname, 'assets', 'icon.png'),
+    icon: path.join(__dirname, '..', '..', 'assets', 'icon.png'),
     alwaysOnTop: true,
     show: false,
     backgroundColor: '#192224',
     webPreferences: {preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false}
   })
   englishWin.setOpacity(state.settings.opacity)
-  englishWin.loadFile('english.html', {query: {mode, id}})
+  englishWin.loadFile(rendererPath('english', 'english.html'), {query: {mode, id}})
   englishWin.once('ready-to-show', () => { englishWin.show(); englishWin.focus() })
   const created = englishWin
   englishWin.on('closed', () => { if (englishWin === created) englishWin = null })
@@ -183,7 +185,7 @@ function ensureDockHandle() {
   })
   dockWin.setOpacity(state.settings.opacity)
   const created = dockWin
-  dockWin.loadFile('dock.html', {query: {edge: state.windowDock}})
+  dockWin.loadFile(rendererPath('dock', 'dock.html'), {query: {edge: state.windowDock}})
   dockWin.once('ready-to-show', () => {
     if (dockWin === created && state.windowDock && !dockRevealed && !manuallyHidden) created.showInactive()
   })
@@ -305,7 +307,7 @@ function createWindow() {
     webPreferences: {preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false}
   })
   win.setOpacity(state.settings.opacity)
-  win.loadFile('index.html')
+  win.loadFile(rendererPath('main', 'index.html'))
   win.once('ready-to-show', () => {
     if (state.windowDock) ensureDockHandle()
     else showWindow()

@@ -1,6 +1,6 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
-const {createReviewState, reviewCard, reviewReward, dueCards, shouldPrompt} = require('../english-engine')
+const {createReviewState, reviewCard, reviewReward, dueCards, shouldPrompt} = require('../src/shared/english-engine')
 
 test('FSRS review advances the card and records the chosen rating', () => {
   const now = Date.now()

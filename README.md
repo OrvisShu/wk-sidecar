@@ -22,3 +22,21 @@ npm start
 - [迭代方向](docs/roadmap.md)：已知限制与后续优先级。
 
 运行 `npm test` 可检查进化、经验和数据恢复规则。
+
+## 项目结构
+
+```text
+src/
+  main/              Electron 主进程、preload 与本地状态存储
+  shared/            不依赖 Electron 的任务、英语和贴边规则
+  renderer/
+    main/            主窗口页面
+    english/         英语速记与复习窗口
+    dock/            屏幕边缘把手
+assets/              应用图标
+docs/                使用、数据和开发文档
+scripts/             打包及图标生成脚本
+test/                规则和持久化测试
+```
+
+入口为 `src/main/main.js`，新增文件的归属和跨目录引用约定见[开发约定](docs/development.md)。

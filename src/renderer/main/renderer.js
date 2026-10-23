@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id)
-const icons = name => `node_modules/lucide-static/icons/${name}.svg`
+const icons = name => `../../../node_modules/lucide-static/icons/${name}.svg`
 const {HOUR, STAGES, stageFor, levelProgress} = window.taskEngine
 const stageLabels = STAGES.map(stage => stage.label)
 let state = null

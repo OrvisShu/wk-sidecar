@@ -1,6 +1,6 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
-const {HANDLE_SIZE, edgeForBounds, expandedPosition, handlePosition} = require('../dock-engine')
+const {HANDLE_SIZE, edgeForBounds, expandedPosition, handlePosition} = require('../src/shared/dock-engine')
 
 test('detects the nearest left or right work area edge', () => {
   const area = {x: -1920, y: 0, width: 1920, height: 1040}

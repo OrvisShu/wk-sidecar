@@ -1,6 +1,6 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
-const {HOUR, stageFor, nextReminderAt, levelProgress} = require('../task-engine')
+const {HOUR, stageFor, nextReminderAt, levelProgress} = require('../src/shared/task-engine')
 
 test('a pending task evolves at the due time and each overdue milestone', () => {
   const dueAt = 1_000_000_000

@@ -12,10 +12,10 @@
     <header class="titlebar">
       <div class="brand"><span class="brand-mark">✦</span><span>打怪待办</span><span class="brand-sub">WORK SIDEKICK</span></div>
       <div class="window-actions">
-        <button class="icon-button" id="pinButton" title="取消置顶" aria-label="切换窗口置顶"><img src="node_modules/lucide-static/icons/pin.svg" alt=""></button>
-        <button class="icon-button" id="settingsButton" title="设置" aria-label="设置"><img src="node_modules/lucide-static/icons/settings-2.svg" alt=""></button>
-        <button class="icon-button" id="compactButton" title="收起" aria-label="收起窗口"><img src="node_modules/lucide-static/icons/chevron-down.svg" alt=""></button>
-        <button class="icon-button" id="hideButton" title="隐藏到托盘" aria-label="隐藏到托盘"><img src="node_modules/lucide-static/icons/x.svg" alt=""></button>
+        <button class="icon-button" id="pinButton" title="取消置顶" aria-label="切换窗口置顶"><img src="../../../node_modules/lucide-static/icons/pin.svg" alt=""></button>
+        <button class="icon-button" id="settingsButton" title="设置" aria-label="设置"><img src="../../../node_modules/lucide-static/icons/settings-2.svg" alt=""></button>
+        <button class="icon-button" id="compactButton" title="收起" aria-label="收起窗口"><img src="../../../node_modules/lucide-static/icons/chevron-down.svg" alt=""></button>
+        <button class="icon-button" id="hideButton" title="隐藏到托盘" aria-label="隐藏到托盘"><img src="../../../node_modules/lucide-static/icons/x.svg" alt=""></button>
       </div>
     </header>
 
@@ -57,7 +57,7 @@
       <section class="quick-add" aria-label="快速记录">
         <form id="addForm">
           <label for="taskInput">快速记录</label>
-          <div class="input-row"><input id="taskInput" maxlength="120" placeholder="此刻想处理什么？" autocomplete="off" required><button class="add-button" type="submit" title="添加待办" aria-label="添加待办"><img src="node_modules/lucide-static/icons/plus.svg" alt=""></button></div>
+          <div class="input-row"><input id="taskInput" maxlength="120" placeholder="此刻想处理什么？" autocomplete="off" required><button class="add-button" type="submit" title="添加待办" aria-label="添加待办"><img src="../../../node_modules/lucide-static/icons/plus.svg" alt=""></button></div>
           <div class="due-options" role="group" aria-label="提醒时间">
             <button type="button" class="due-option active" data-due="hour">1 小时</button>
             <button type="button" class="due-option" data-due="three">3 小时</button>
@@ -69,7 +69,7 @@
       </section>
 
       <section class="task-section" aria-label="内容列表">
-        <div class="english-toolbar" id="englishToolbar" hidden><input id="englishSearch" type="search" placeholder="搜索卡片" aria-label="搜索英语卡片"><button type="button" id="captureEnglish"><img src="node_modules/lucide-static/icons/plus.svg" alt="">速记</button><button type="button" id="reviewEnglish"><img src="node_modules/lucide-static/icons/brain.svg" alt="">复习</button></div>
+        <div class="english-toolbar" id="englishToolbar" hidden><input id="englishSearch" type="search" placeholder="搜索卡片" aria-label="搜索英语卡片"><button type="button" id="captureEnglish"><img src="../../../node_modules/lucide-static/icons/plus.svg" alt="">速记</button><button type="button" id="reviewEnglish"><img src="../../../node_modules/lucide-static/icons/brain.svg" alt="">复习</button></div>
         <div class="task-list" id="taskList"></div>
       </section>
     </main>
@@ -77,13 +77,13 @@
     <div class="compact-content">
       <div class="compact-monster" id="compactMonster">✦</div>
       <div class="compact-copy"><span id="compactLabel">任务清零</span><strong id="compactTitle">今天也有好状态</strong><small id="compactMeta">随时记录一件待办</small></div>
-      <button class="compact-open" id="expandButton" title="展开" aria-label="展开窗口"><img src="node_modules/lucide-static/icons/chevron-up.svg" alt=""></button>
+      <button class="compact-open" id="expandButton" title="展开" aria-label="展开窗口"><img src="../../../node_modules/lucide-static/icons/chevron-up.svg" alt=""></button>
     </div>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </div>
 
   <dialog id="settingsDialog" class="settings-dialog">
-    <div class="dialog-heading"><h2>偏好设置</h2><button id="closeSettings" class="icon-button" title="关闭设置" aria-label="关闭设置"><img src="node_modules/lucide-static/icons/x.svg" alt=""></button></div>
+    <div class="dialog-heading"><h2>偏好设置</h2><button id="closeSettings" class="icon-button" title="关闭设置" aria-label="关闭设置"><img src="../../../node_modules/lucide-static/icons/x.svg" alt=""></button></div>
     <label class="setting-row"><span><strong>桌面提醒</strong><small>到期后每小时提醒一次</small></span><input type="checkbox" id="notificationToggle"></label>
     <label class="setting-row"><span><strong>英语复习提醒</strong><small>安静时段外，每天最多 3 次</small></span><input type="checkbox" id="englishReminderToggle"></label>
     <div class="setting-group"><strong>英语速记快捷键</strong><select id="englishShortcut"><option value="Control+Shift+E">Ctrl + Shift + E</option><option value="Control+Alt+E">Ctrl + Alt + E</option><option value="Alt+Shift+E">Alt + Shift + E</option></select><small id="shortcutStatus"></small></div>
@@ -96,7 +96,7 @@
     <div class="setting-group data-group"><strong>本地数据</strong><div class="data-actions"><button type="button" id="openDataFolder">打开目录</button><button type="button" id="exportData">导出</button><button type="button" id="importData">导入</button></div></div>
     <div class="evolution-guide"><strong>怪物进化</strong><p>到期出现 · 1 小时成长 · 6 小时暴走 · 24 小时成为 Boss</p></div>
   </dialog>
-  <script src="task-engine.js"></script>
+  <script src="../../shared/task-engine.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

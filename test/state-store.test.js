@@ -3,8 +3,8 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
-const {defaults, normalizeState, loadState, saveState} = require('../state-store')
-const {createReviewState, reviewCard} = require('../english-engine')
+const {defaults, normalizeState, loadState, saveState} = require('../src/main/state-store')
+const {createReviewState, reviewCard} = require('../src/shared/english-engine')
 
 test('saved preferences and completed task progress survive a restart', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'wk-sidecar-store-'))
