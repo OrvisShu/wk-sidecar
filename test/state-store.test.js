@@ -57,6 +57,17 @@ test('malformed preferences are replaced with safe values', () => {
   assert.equal(normalized.settings.openAtLogin, true)
 })
 
+test('edge docking restores only when automatic hiding is enabled', () => {
+  const saved = {tasks: [], windowPosition: {x: 0, y: 120}, windowDock: 'left', settings: {edgeAutoHide: true}}
+  assert.equal(normalizeState(saved).windowDock, 'left')
+  assert.deepEqual(normalizeState(saved).windowPosition, {x: 0, y: 120})
+  saved.settings.edgeAutoHide = false
+  assert.equal(normalizeState(saved).windowDock, null)
+  saved.settings.edgeAutoHide = true
+  saved.windowDock = 'top'
+  assert.equal(normalizeState(saved).windowDock, null)
+})
+
 test('a missing primary file can be restored from backup', () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'wk-sidecar-store-'))
   try {

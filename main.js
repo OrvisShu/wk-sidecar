@@ -5,6 +5,7 @@ const zlib = require('zlib')
 const {STAGES, HOUR, stageFor, nextReminderAt} = require('./task-engine')
 const {loadState, saveState: writeState, normalizeState} = require('./state-store')
 const {createReviewState, reviewCard, reviewReward, dueCards, shouldPrompt} = require('./english-engine')
+const {HANDLE_SIZE, edgeForBounds, expandedPosition, handlePosition} = require('./dock-engine')
 
 const EXPANDED = {width: 390, height: 690}
 const COMPACT = {width: 350, height: 174}
@@ -12,6 +13,13 @@ const PRAISE = ['漂亮的一击！事情又向前推进了。', '干得好，�
 let win
 let tray
 let englishWin
+let dockWin
+let dockHandleEdge = null
+let dockRevealed = false
+let dockCollapseTimer
+let moveTimer
+let programmaticPosition = null
+let manuallyHidden = false
 let shortcutRegistered = false
 let state
 let dataPath
@@ -39,11 +47,16 @@ function applyAppearance() {
     win.setOpacity(state.settings.opacity)
   }
   if (englishWin && !englishWin.isDestroyed()) englishWin.setOpacity(state.settings.opacity)
+  if (dockWin && !dockWin.isDestroyed()) {
+    dockWin.setAlwaysOnTop(state.settings.alwaysOnTop)
+    dockWin.setOpacity(state.settings.opacity)
+  }
 }
 
 function publish() {
   if (win && !win.isDestroyed()) win.webContents.send('state:changed', state)
   if (englishWin && !englishWin.isDestroyed()) englishWin.webContents.send('state:changed', state)
+  if (dockWin && !dockWin.isDestroyed()) dockWin.webContents.send('state:changed', state)
 }
 
 function showEnglishWindow(mode = 'capture', id = '') {
@@ -132,26 +145,158 @@ function trayImage() {
   return nativeImage.createFromBuffer(png)
 }
 
+function moveMainWindow(position) {
+  const [x, y] = win.getPosition()
+  if (x === position.x && y === position.y) return
+  programmaticPosition = position
+  win.setPosition(position.x, position.y)
+  setTimeout(() => { if (programmaticPosition === position) programmaticPosition = null }, 150)
+}
+
+function closeDockHandle() {
+  if (dockWin && !dockWin.isDestroyed()) dockWin.close()
+  dockWin = null
+  dockHandleEdge = null
+}
+
+function ensureDockHandle() {
+  if (!state.windowDock || !win || win.isDestroyed()) return
+  const bounds = win.getBounds()
+  const workArea = screen.getDisplayMatching(bounds).workArea
+  const position = handlePosition(state.windowDock, workArea, bounds, bounds.y)
+  if (dockWin && !dockWin.isDestroyed() && dockHandleEdge === state.windowDock) {
+    dockWin.setPosition(position.x, position.y)
+    return
+  }
+  closeDockHandle()
+  dockHandleEdge = state.windowDock
+  dockWin = new BrowserWindow({
+    ...HANDLE_SIZE,
+    ...position,
+    frame: false,
+    resizable: false,
+    skipTaskbar: true,
+    alwaysOnTop: state.settings.alwaysOnTop,
+    show: false,
+    backgroundColor: '#192224',
+    webPreferences: {preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false}
+  })
+  dockWin.setOpacity(state.settings.opacity)
+  const created = dockWin
+  dockWin.loadFile('dock.html', {query: {edge: state.windowDock}})
+  dockWin.once('ready-to-show', () => {
+    if (dockWin === created && state.windowDock && !dockRevealed && !manuallyHidden) created.showInactive()
+  })
+  dockWin.on('closed', () => { if (dockWin === created) { dockWin = null; dockHandleEdge = null } })
+}
+
+function collapseDock() {
+  if (!state.windowDock || manuallyHidden || !win || win.isDestroyed()) return
+  clearTimeout(dockCollapseTimer)
+  dockRevealed = false
+  win.hide()
+  ensureDockHandle()
+  if (dockWin && !dockWin.isDestroyed() && !dockWin.webContents.isLoading()) dockWin.showInactive()
+}
+
+function revealDock(focus = false) {
+  if (!win || win.isDestroyed()) return
+  clearTimeout(dockCollapseTimer)
+  dockRevealed = true
+  if (dockWin && !dockWin.isDestroyed()) dockWin.hide()
+  if (focus) { win.show(); win.focus() }
+  else win.showInactive()
+}
+
+function scheduleDockCollapse() {
+  if (!state.windowDock || !dockRevealed || manuallyHidden) return
+  clearTimeout(dockCollapseTimer)
+  dockCollapseTimer = setTimeout(() => {
+    if (moveTimer) { scheduleDockCollapse(); return }
+    if (!win || win.isDestroyed()) return
+    const cursor = screen.getCursorScreenPoint()
+    const bounds = win.getBounds()
+    if (cursor.x >= bounds.x && cursor.x < bounds.x + bounds.width && cursor.y >= bounds.y && cursor.y < bounds.y + bounds.height) return
+    collapseDock()
+  }, 450)
+}
+
 function showWindow() {
   if (!win || win.isDestroyed()) return
-  win.show()
-  win.focus()
+  manuallyHidden = false
+  if (state.windowDock) revealDock(true)
+  else { win.show(); win.focus() }
+}
+
+function hideToTray() {
+  manuallyHidden = true
+  clearTimeout(dockCollapseTimer)
+  win.hide()
+  if (dockWin && !dockWin.isDestroyed()) dockWin.hide()
+}
+
+function dockWindow(edge) {
+  clearTimeout(moveTimer)
+  moveTimer = null
+  const bounds = win.getBounds()
+  const workArea = screen.getDisplayMatching(bounds).workArea
+  const position = expandedPosition(edge, workArea, bounds, bounds.y)
+  state.windowDock = edge
+  state.windowPosition = position
+  dockRevealed = true
+  moveMainWindow(position)
+  ensureDockHandle()
+  revealDock()
+  scheduleDockCollapse()
+  saveState()
+  publish()
+}
+
+function undockWindow(moveInside = false) {
+  const edge = state.windowDock
+  if (!edge) return
+  clearTimeout(dockCollapseTimer)
+  state.windowDock = null
+  dockRevealed = false
+  closeDockHandle()
+  if (moveInside) {
+    const bounds = win.getBounds()
+    const workArea = screen.getDisplayMatching(bounds).workArea
+    const x = edge === 'left' ? workArea.x + 24 : workArea.x + workArea.width - bounds.width - 24
+    moveMainWindow({x, y: bounds.y})
+    state.windowPosition = {x, y: bounds.y}
+    showWindow()
+  }
+}
+
+function repositionDock() {
+  if (!state.windowDock || !win || win.isDestroyed()) return
+  const saved = state.windowPosition || win.getBounds()
+  const workArea = screen.getDisplayNearestPoint(saved).workArea
+  const position = expandedPosition(state.windowDock, workArea, win.getBounds(), saved.y)
+  moveMainWindow(position)
+  state.windowPosition = position
+  ensureDockHandle()
+  saveState()
 }
 
 function createWindow() {
   const size = state.settings.compact ? COMPACT : EXPANDED
   const saved = state.windowPosition
   const workArea = saved ? screen.getDisplayNearestPoint(saved).workArea : screen.getPrimaryDisplay().workArea
-  const x = saved ? Math.min(Math.max(saved.x, workArea.x), workArea.x + workArea.width - size.width) : workArea.x + workArea.width - size.width - 20
-  const y = saved ? Math.min(Math.max(saved.y, workArea.y), workArea.y + workArea.height - size.height) : workArea.y + workArea.height - size.height - 20
+  const initial = state.windowDock
+    ? expandedPosition(state.windowDock, workArea, size, saved?.y ?? workArea.y + workArea.height - size.height - 20)
+    : {
+        x: saved ? Math.min(Math.max(saved.x, workArea.x), workArea.x + workArea.width - size.width) : workArea.x + workArea.width - size.width - 20,
+        y: saved ? Math.min(Math.max(saved.y, workArea.y), workArea.y + workArea.height - size.height) : workArea.y + workArea.height - size.height - 20
+      }
   win = new BrowserWindow({
     ...size,
     minWidth: size.width,
     minHeight: size.height,
     maxWidth: size.width,
     maxHeight: size.height,
-    x,
-    y,
+    ...initial,
     frame: false,
     resizable: false,
     alwaysOnTop: state.settings.alwaysOnTop,
@@ -161,20 +306,33 @@ function createWindow() {
   })
   win.setOpacity(state.settings.opacity)
   win.loadFile('index.html')
-  win.once('ready-to-show', showWindow)
+  win.once('ready-to-show', () => {
+    if (state.windowDock) ensureDockHandle()
+    else showWindow()
+  })
   win.on('close', event => {
     if (!quitting) {
       event.preventDefault()
-      win.hide()
+      hideToTray()
     }
   })
-  let moveTimer
+  win.on('blur', scheduleDockCollapse)
   win.on('move', () => {
+    const [x, y] = win.getPosition()
+    if (programmaticPosition?.x === x && programmaticPosition?.y === y) return
+    if (state.windowDock && !dockRevealed) return
+    clearTimeout(dockCollapseTimer)
     clearTimeout(moveTimer)
     moveTimer = setTimeout(() => {
-      if (!win.isDestroyed()) mutate(() => {
-        const [x, y] = win.getPosition()
-        state.windowPosition = {x, y}
+      moveTimer = null
+      if (win.isDestroyed()) return
+      const bounds = win.getBounds()
+      const workArea = screen.getDisplayMatching(bounds).workArea
+      const edge = state.settings.edgeAutoHide ? edgeForBounds(bounds, workArea) : null
+      if (edge) dockWindow(edge)
+      else mutate(() => {
+        if (state.windowDock) undockWindow()
+        state.windowPosition = {x: bounds.x, y: bounds.y}
       })
     }, 400)
   })
@@ -309,7 +467,7 @@ function registerIpc() {
     task.snoozedUntil = Date.now() + 30 * 60 * 1000
   }))
   ipcMain.handle('setting:set', (_event, key, value) => {
-    const booleanSetting = ['notifications', 'alwaysOnTop', 'openAtLogin', 'englishReminders'].includes(key) && typeof value === 'boolean'
+    const booleanSetting = ['notifications', 'alwaysOnTop', 'openAtLogin', 'englishReminders', 'edgeAutoHide'].includes(key) && typeof value === 'boolean'
     const themeSetting = key === 'theme' && ['system', 'dark', 'light'].includes(value)
     const opacitySetting = key === 'opacity' && typeof value === 'number' && Number.isFinite(value) && value >= 0.65 && value <= 1
     const shortcutSetting = key === 'englishShortcut' && ['Control+Shift+E', 'Control+Alt+E', 'Alt+Shift+E'].includes(value)
@@ -317,10 +475,22 @@ function registerIpc() {
     if (shortcutSetting && value !== state.settings.englishShortcut && !registerEnglishShortcut(value)) throw new Error('快捷键被其他程序占用，请选择其他组合')
     return mutate(() => {
       state.settings[key] = value
+      if (key === 'edgeAutoHide' && !value) undockWindow(true)
       if (key === 'openAtLogin') updateLoginItem()
       if (['alwaysOnTop', 'theme', 'opacity'].includes(key)) applyAppearance()
     })
   })
+  ipcMain.handle('window:dock', (_event, edge) => {
+    if (edge !== null && !['left', 'right'].includes(edge)) throw new Error('无效贴边方向')
+    if (edge && !state.settings.edgeAutoHide) throw new Error('请先开启贴边自动隐藏')
+    if (edge) dockWindow(edge)
+    else mutate(() => undockWindow(true))
+  })
+  ipcMain.handle('window:dock-reveal', () => {
+    if (!state.windowDock || manuallyHidden) return
+    revealDock()
+  })
+  ipcMain.handle('window:dock-leave', () => scheduleDockCollapse())
   ipcMain.handle('data:open-folder', () => shell.openPath(path.dirname(dataPath)))
   ipcMain.handle('data:export', async () => {
     const result = await dialog.showSaveDialog(win, {title: '导出待办数据', defaultPath: `打怪待办-${new Date().toISOString().slice(0, 10)}.json`, filters: [{name: 'JSON 文件', extensions: ['json']}]})
@@ -349,15 +519,22 @@ function registerIpc() {
     return mutate(() => {
       state.settings.compact = compact
       const size = compact ? COMPACT : EXPANDED
+      clearTimeout(moveTimer)
+      moveTimer = null
       win.setMinimumSize(Math.min(COMPACT.width, EXPANDED.width), Math.min(COMPACT.height, EXPANDED.height))
       win.setMaximumSize(Math.max(COMPACT.width, EXPANDED.width), Math.max(COMPACT.height, EXPANDED.height))
       win.setSize(size.width, size.height)
       const bounds = win.getBounds()
       const workArea = screen.getDisplayMatching(bounds).workArea
-      win.setPosition(Math.min(Math.max(bounds.x, workArea.x), workArea.x + workArea.width - size.width), Math.min(Math.max(bounds.y, workArea.y), workArea.y + workArea.height - size.height))
+      const position = state.windowDock
+        ? expandedPosition(state.windowDock, workArea, size, bounds.y)
+        : {x: Math.min(Math.max(bounds.x, workArea.x), workArea.x + workArea.width - size.width), y: Math.min(Math.max(bounds.y, workArea.y), workArea.y + workArea.height - size.height)}
+      moveMainWindow(position)
+      state.windowPosition = position
+      if (state.windowDock) ensureDockHandle()
     })
   })
-  ipcMain.handle('window:hide', () => win.hide())
+  ipcMain.handle('window:hide', () => hideToTray())
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -373,6 +550,8 @@ if (!app.requestSingleInstanceLock()) {
     updateLoginItem()
     registerIpc()
     createWindow()
+    screen.on('display-metrics-changed', repositionDock)
+    screen.on('display-removed', repositionDock)
     registerEnglishShortcut(state.settings.englishShortcut)
     tray = new Tray(trayImage())
     tray.setToolTip('打怪待办')

@@ -1,0 +1,13 @@
+:root { font-family: "Microsoft YaHei UI", sans-serif; color: #84e1a8; background: #192224; }
+* { box-sizing: border-box; }
+html, body { width: 100%; height: 100%; margin: 0; }
+body { border: 1px solid #527461; border-radius: 0 6px 6px 0; overflow: hidden; }
+body.right { border-radius: 6px 0 0 6px; }
+button { width: 100%; height: 100%; border: 0; background: #263b31; color: inherit; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; cursor: pointer; }
+button:hover, button:focus-visible { background: #335541; outline: none; }
+button span { font-size: 18px; line-height: 1; }
+button img { width: 15px; height: 15px; filter: invert(81%) sepia(19%) saturate(641%) hue-rotate(84deg); }
+.light { color: #2b8251; background: #e4f2e7; border-color: #90c6a0; }
+.light button { background: #e4f2e7; }
+.light button:hover, .light button:focus-visible { background: #ccebd4; }
+.light button img { filter: invert(40%) sepia(20%) saturate(897%) hue-rotate(91deg); }

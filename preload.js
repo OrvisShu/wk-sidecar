@@ -19,6 +19,9 @@ contextBridge.exposeInMainWorld('sidecar', {
   exportData: () => ipcRenderer.invoke('data:export'),
   importData: () => ipcRenderer.invoke('data:import'),
   setCompact: value => ipcRenderer.invoke('window:compact', value),
+  setDock: edge => ipcRenderer.invoke('window:dock', edge),
+  revealDock: () => ipcRenderer.invoke('window:dock-reveal'),
+  leaveDock: () => ipcRenderer.invoke('window:dock-leave'),
   hideWindow: () => ipcRenderer.invoke('window:hide'),
   onStateChanged: callback => ipcRenderer.on('state:changed', (_event, state) => callback(state))
 })

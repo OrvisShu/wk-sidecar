@@ -8,6 +8,7 @@
 | `preload.js` | 向页面暴露最小权限的 IPC 接口 |
 | `task-engine.js` | 阶段、提醒时间和经验计算的纯规则；主进程与页面共用 |
 | `english-engine.js` | FSRS 包装、到期查询与提示频率规则 |
+| `dock-engine.js`、`dock.html`、`dock.js` | 贴边几何规则与边缘把手 |
 | `state-store.js` | 状态默认值、旧数据兼容、校验、备份和恢复 |
 | `renderer.js`、`index.html`、`styles.css` | 界面、交互与主题；不直接访问文件系统 |
 | `english-window.js`、`english.html`、`english.css` | 速记、编辑与复习小窗 |
@@ -19,6 +20,8 @@
 总经验由已完成待办的 `earnedXp` 和英语卡片的累计 `earnedXp` 相加。英语卡片每天最多奖励一次，`lastXpDay` 记录本地日期；评分历史只保留最近 100 条，不能用历史条数重算总经验。修改删除、导入或恢复行为时保持这项总账一致。
 
 不要在页面或主进程另写一份阶段/经验公式。修改托盘、置顶、透明度、开机启动等操作系统行为时，验证开发版和打包版；打包版应继续使用固定的 `wk-sidecar` 数据目录。
+
+贴边状态只保存 `windowDock` 与主窗口展开坐标。主窗口隐藏到托盘时，把手也必须隐藏；切换紧凑模式、显示器工作区变化和重启后，应按 `dock-engine.js` 重算主窗口与把手位置。
 
 ## 本地验证
 

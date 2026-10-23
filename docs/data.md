@@ -50,14 +50,18 @@
     "theme": "system",
     "opacity": 1,
     "openAtLogin": false,
+    "edgeAutoHide": true,
     "englishShortcut": "Control+Shift+E",
     "englishReminders": true
   },
-  "windowPosition": {"x": 100, "y": 100}
+  "windowPosition": {"x": 100, "y": 100},
+  "windowDock": null
 }
 ```
 
 读取时由 `state-store.js` 校验字段、补齐旧版缺失的设置、限制透明度范围。总经验按已完成任务和英语卡片各自累计的 `earnedXp` 重算，任务完成数只统计已完成任务。英语卡片的 `lastXpDay` 用于限制同一卡片每天只获得一次复习经验；评分历史最多保存最近 100 条，不用于重算总经验。主进程独占文件读写；渲染进程只能通过 `preload.js` 暴露的 IPC 操作数据。
+
+`windowPosition` 始终记录主窗口展开时的位置；`windowDock` 为 `left`、`right` 或 `null`。贴边把手只在运行时创建，不保存离屏坐标。关闭贴边自动隐藏时，读取旧状态会清除贴边方向。
 
 ## 写入与备份
 

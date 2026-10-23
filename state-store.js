@@ -7,12 +7,13 @@ const DEFAULT_SETTINGS = Object.freeze({
   theme: 'system',
   opacity: 1,
   openAtLogin: false,
+  edgeAutoHide: true,
   englishShortcut: 'Control+Shift+E',
   englishReminders: true
 })
 
 function defaults() {
-  return {tasks: [], cards: [], reviewReminder: {day: '', count: 0, lastAt: 0}, xp: 0, completedCount: 0, settings: {...DEFAULT_SETTINGS}, windowPosition: null}
+  return {tasks: [], cards: [], reviewReminder: {day: '', count: 0, lastAt: 0}, xp: 0, completedCount: 0, settings: {...DEFAULT_SETTINGS}, windowPosition: null, windowDock: null}
 }
 
 function normalizeState(saved) {
@@ -29,7 +30,7 @@ function normalizeState(saved) {
   }))
   const raw = saved.settings && typeof saved.settings === 'object' ? saved.settings : {}
   const settings = {...DEFAULT_SETTINGS}
-  for (const key of ['notifications', 'alwaysOnTop', 'compact', 'openAtLogin', 'englishReminders']) {
+  for (const key of ['notifications', 'alwaysOnTop', 'compact', 'openAtLogin', 'englishReminders', 'edgeAutoHide']) {
     if (typeof raw[key] === 'boolean') settings[key] = raw[key]
   }
   if (['system', 'dark', 'light'].includes(raw.theme)) settings.theme = raw.theme
@@ -60,7 +61,8 @@ function normalizeState(saved) {
     xp: completed.reduce((total, task) => total + (task.earnedXp || 20), 0) + cards.reduce((total, card) => total + card.earnedXp, 0),
     completedCount: completed.length,
     settings,
-    windowPosition
+    windowPosition,
+    windowDock: settings.edgeAutoHide && ['left', 'right'].includes(saved.windowDock) ? saved.windowDock : null
   }
 }
 

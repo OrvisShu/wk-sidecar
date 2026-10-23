@@ -217,6 +217,11 @@ function render() {
   $('pinButton').classList.toggle('is-off', !state.settings.alwaysOnTop)
   $('pinButton').title = state.settings.alwaysOnTop ? '取消置顶' : '窗口置顶'
   $('pinToggle').checked = state.settings.alwaysOnTop
+  $('edgeAutoHideToggle').checked = state.settings.edgeAutoHide
+  document.querySelectorAll('.dock-options button').forEach(button => {
+    button.classList.toggle('active', button.dataset.dock === (state.windowDock || 'none'))
+    button.disabled = !state.settings.edgeAutoHide
+  })
   $('notificationToggle').checked = state.settings.notifications
   $('englishReminderToggle').checked = state.settings.englishReminders
   $('englishShortcut').value = state.settings.englishShortcut
@@ -279,6 +284,12 @@ $('englishShortcut').addEventListener('change', async event => {
   }
 })
 $('pinToggle').addEventListener('change', event => window.sidecar.setSetting('alwaysOnTop', event.target.checked).catch(error => showToast(error.message)))
+$('edgeAutoHideToggle').addEventListener('change', event => window.sidecar.setSetting('edgeAutoHide', event.target.checked).catch(error => showToast(error.message)))
+document.querySelectorAll('.dock-options button').forEach(button => button.addEventListener('click', async () => {
+  $('settingsDialog').close()
+  try { await window.sidecar.setDock(button.dataset.dock === 'none' ? null : button.dataset.dock) }
+  catch (error) { showToast(error.message) }
+}))
 $('loginToggle').disabled = !window.sidecar.canOpenAtLogin
 $('loginToggle').addEventListener('change', event => window.sidecar.setSetting('openAtLogin', event.target.checked).catch(error => showToast(error.message)))
 document.querySelectorAll('.theme-options button').forEach(button => button.addEventListener('click', () => window.sidecar.setSetting('theme', button.dataset.theme).catch(error => showToast(error.message))))
@@ -301,6 +312,7 @@ $('importData').addEventListener('click', async () => {
   catch (error) { showToast('导入失败，请检查文件格式') }
 })
 systemTheme.addEventListener('change', render)
+document.getElementById('app').addEventListener('mouseleave', () => window.sidecar.leaveDock())
 document.addEventListener('keydown', event => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'n' && !state?.settings.compact) {
     event.preventDefault()
