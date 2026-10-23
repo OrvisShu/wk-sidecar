@@ -37,11 +37,12 @@ npm install
 npm test
 npm start
 npm run package
+npm run installer
 ```
 
-`npm run package` 目前只面向 Windows x64，输出便携版目录 `release/打怪待办-win32-x64`。目录已加入 `.gitignore`。应用图标源文件在 `assets/`；在 Windows 修改图标后可运行 `powershell -ExecutionPolicy Bypass -File scripts/generate-icon.ps1` 重新生成 PNG 和 ICO。
+`npm run package` 面向 Windows x64，输出便携版目录 `release/打怪待办-win32-x64`。`npm run installer` 使用 electron-builder 和 NSIS，输出单文件安装程序到 `dist/`；两种产物均不提交到 Git。安装版的 `appId` 必须与主进程的 Windows AppUserModelId 保持一致，升级时不要随意改动，否则快捷方式和安装身份会改变。安装、升级和卸载都应保留 `%APPDATA%\wk-sidecar` 用户数据。应用图标源文件在 `assets/`；在 Windows 修改图标后可运行 `powershell -ExecutionPolicy Bypass -File scripts/generate-icon.ps1` 重新生成 PNG 和 ICO。
 
-涉及任务、提醒或存储的修改至少验证：新增任务、到期边界、完成/撤销、删除后的经验、重启恢复、坏文件恢复。涉及窗口或偏好的修改还需验证：收起/展开、托盘隐藏与退出、系统主题切换、透明度及再次启动唤回窗口。打包改动要实际启动生成的可执行文件，检查图标和数据目录。
+涉及任务、提醒或存储的修改至少验证：新增任务、到期边界、完成/撤销、删除后的经验、重启恢复、坏文件恢复。涉及窗口或偏好的修改还需验证：收起/展开、托盘隐藏与退出、系统主题切换、透明度及再次启动唤回窗口。打包改动要实际启动生成的可执行文件，检查图标和数据目录；安装器改动还需验证安装、快捷方式目标和卸载清理。
 
 ## 保持可维护
 

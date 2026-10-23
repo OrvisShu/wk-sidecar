@@ -9,14 +9,41 @@
   "scripts": {
     "start": "electron .",
     "test": "node --test",
-    "package": "node scripts/package.js"
+    "package": "node scripts/package.js",
+    "installer": "electron-builder --win nsis --x64"
   },
   "devDependencies": {
     "@electron/packager": "^20.3.0",
-    "electron": "^43.8.3"
+    "electron": "^43.8.3",
+    "electron-builder": "^26.15.3"
   },
   "dependencies": {
     "lucide-static": "^1.61.0",
     "ts-fsrs": "^5.4.2"
+  },
+  "build": {
+    "appId": "com.orvis.worksidecar",
+    "productName": "打怪待办",
+    "asar": true,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "assets/icon.ico",
+      "artifactName": "打怪待办-Setup-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "打怪待办",
+      "uninstallDisplayName": "打怪待办"
+    }
   }
 }
