@@ -2,7 +2,7 @@
 
 ## 存储位置
 
-主进程固定使用 Electron 的 `appData/wk-sidecar` 目录，因此开发版和便携版读取同一份数据。主文件名为 `tasks.json`。
+主进程默认使用 Electron 的 `appData/wk-sidecar` 目录，因此开发版和便携版默认读取同一份数据。开发版设置 `WK_SIDECAR_DEV_DATA_DIR` 时可改用独立测试目录；打包版不受该变量影响。主文件名为 `tasks.json`。
 
 | 系统 | 通常位置 |
 | --- | --- |
@@ -36,7 +36,9 @@
     "createdAt": 1760000000000,
     "updatedAt": 1760000000000,
     "schedule": {"due": 1760000000000, "stability": 0, "difficulty": 0, "elapsed_days": 0, "scheduled_days": 0, "reps": 0, "lapses": 0, "learning_steps": 0, "state": 0, "last_review": null},
-    "reviews": []
+    "reviews": [],
+    "earnedXp": 0,
+    "lastXpDay": ""
   }],
   "reviewReminder": {"day": "", "count": 0, "lastAt": 0},
   "xp": 0,
@@ -55,7 +57,7 @@
 }
 ```
 
-读取时由 `state-store.js` 校验字段、补齐旧版缺失的设置、限制透明度范围，并根据已完成任务重算经验与完成数。主进程独占文件读写；渲染进程只能通过 `preload.js` 暴露的 IPC 操作数据。
+读取时由 `state-store.js` 校验字段、补齐旧版缺失的设置、限制透明度范围。总经验按已完成任务和英语卡片各自累计的 `earnedXp` 重算，任务完成数只统计已完成任务。英语卡片的 `lastXpDay` 用于限制同一卡片每天只获得一次复习经验；评分历史最多保存最近 100 条，不用于重算总经验。主进程独占文件读写；渲染进程只能通过 `preload.js` 暴露的 IPC 操作数据。
 
 ## 写入与备份
 

@@ -2,6 +2,7 @@ const {createEmptyCard, fsrs, Rating} = require('ts-fsrs')
 
 const scheduler = fsrs()
 const RATINGS = Object.freeze({again: Rating.Again, hard: Rating.Hard, good: Rating.Good, easy: Rating.Easy})
+const REVIEW_XP = 5
 
 function createReviewState(now = Date.now()) {
   return serializeCard(createEmptyCard(new Date(now)))
@@ -21,6 +22,11 @@ function reviewCard(card, rating, now = Date.now()) {
   return {schedule: serializeCard(result.card), log: {rating, reviewedAt: now, nextDueAt: result.card.due.getTime()}}
 }
 
+function reviewReward(card, now = Date.now()) {
+  const day = new Date(now).toLocaleDateString('en-CA')
+  return {day, xp: card.lastXpDay === day ? 0 : REVIEW_XP}
+}
+
 function dueCards(cards, now = Date.now()) {
   return cards.filter(card => card.back.trim() && card.schedule.due <= now).sort((a, b) => a.schedule.due - b.schedule.due)
 }
@@ -34,4 +40,4 @@ function shouldPrompt(cards, reminder, now = Date.now()) {
   return dueCards(cards, now).some(card => now - card.createdAt >= 30 * 60 * 1000)
 }
 
-module.exports = {createReviewState, reviewCard, dueCards, shouldPrompt}
+module.exports = {createReviewState, reviewCard, reviewReward, dueCards, shouldPrompt}

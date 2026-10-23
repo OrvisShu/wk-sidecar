@@ -1,6 +1,6 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
-const {createReviewState, reviewCard, dueCards, shouldPrompt} = require('../english-engine')
+const {createReviewState, reviewCard, reviewReward, dueCards, shouldPrompt} = require('../english-engine')
 
 test('FSRS review advances the card and records the chosen rating', () => {
   const now = Date.now()
@@ -18,6 +18,15 @@ test('drafts without a meaning stay out of the review queue', () => {
   const schedule = createReviewState(now - 1000)
   const cards = [{id: 'draft', back: '', createdAt: now - 3600000, schedule}, {id: 'ready', back: '含义', createdAt: now - 3600000, schedule}]
   assert.deepEqual(dueCards(cards, now).map(card => card.id), ['ready'])
+})
+
+test('a card earns review XP once per local day', () => {
+  const today = new Date(2026, 9, 23, 10).getTime()
+  const tomorrow = new Date(2026, 9, 24, 10).getTime()
+  const first = reviewReward({lastXpDay: ''}, today)
+  assert.equal(first.xp, 5)
+  assert.equal(reviewReward({lastXpDay: first.day}, today).xp, 0)
+  assert.equal(reviewReward({lastXpDay: first.day}, tomorrow).xp, 5)
 })
 
 test('prompts respect quiet hours, spacing, and daily cap', () => {

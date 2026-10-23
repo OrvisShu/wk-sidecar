@@ -4,7 +4,7 @@ const path = require('path')
 const zlib = require('zlib')
 const {STAGES, HOUR, stageFor, nextReminderAt} = require('./task-engine')
 const {loadState, saveState: writeState, normalizeState} = require('./state-store')
-const {createReviewState, reviewCard, dueCards, shouldPrompt} = require('./english-engine')
+const {createReviewState, reviewCard, reviewReward, dueCards, shouldPrompt} = require('./english-engine')
 
 const EXPANDED = {width: 390, height: 690}
 const COMPACT = {width: 350, height: 174}
@@ -17,7 +17,9 @@ let state
 let dataPath
 let quitting = false
 
-const userDataPath = path.join(app.getPath('appData'), 'wk-sidecar')
+const userDataPath = !app.isPackaged && process.env.WK_SIDECAR_DEV_DATA_DIR
+  ? path.resolve(process.env.WK_SIDECAR_DEV_DATA_DIR)
+  : path.join(app.getPath('appData'), 'wk-sidecar')
 fs.mkdirSync(userDataPath, {recursive: true})
 app.setPath('userData', userDataPath)
 
@@ -228,7 +230,7 @@ function registerIpc() {
     if (!front || front.length > 300 || back.length > 500 || example.length > 500) throw new Error('请输入英语内容，文本长度不超过限制')
     return mutate(() => {
       const now = Date.now()
-      const card = {id: crypto.randomUUID(), front, back, example, createdAt: now, updatedAt: now, schedule: createReviewState(now), reviews: []}
+      const card = {id: crypto.randomUUID(), front, back, example, createdAt: now, updatedAt: now, schedule: createReviewState(now), reviews: [], earnedXp: 0, lastXpDay: ''}
       state.cards.unshift(card)
       return card
     })
@@ -248,16 +250,21 @@ function registerIpc() {
   ipcMain.handle('english:delete', (_event, id) => mutate(() => {
     const index = state.cards.findIndex(item => item.id === id)
     if (index < 0) throw new Error('卡片不存在')
-    state.cards.splice(index, 1)
+    const [card] = state.cards.splice(index, 1)
+    state.xp = Math.max(0, state.xp - card.earnedXp)
   }))
   ipcMain.handle('english:review', (_event, id, rating) => mutate(() => {
     const card = state.cards.find(item => item.id === id)
     if (!card || !card.back.trim() || card.schedule.due > Date.now()) throw new Error('卡片暂不可复习')
     const result = reviewCard(card.schedule, rating)
+    const reward = reviewReward(card, result.log.reviewedAt)
     card.schedule = result.schedule
-    card.reviews.push(result.log)
+    card.reviews.push({...result.log, earnedXp: reward.xp})
     card.reviews = card.reviews.slice(-100)
-    return {nextDueAt: result.schedule.due}
+    card.earnedXp += reward.xp
+    if (reward.xp) card.lastXpDay = reward.day
+    state.xp += reward.xp
+    return {nextDueAt: result.schedule.due, xp: reward.xp}
   }))
   ipcMain.handle('task:add', (_event, input) => {
     const title = typeof input?.title === 'string' ? input.title.trim() : ''

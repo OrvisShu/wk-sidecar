@@ -209,7 +209,8 @@ function render() {
   $('level').textContent = progress.level
   $('xpText').textContent = `${progress.current} / ${progress.required} XP`
   $('xpFill').style.width = `${100 * progress.current / progress.required}%`
-  $('completedCount').textContent = state.completedCount
+  $('contextCount').textContent = activeTab === 'english' ? state.cards.length : state.completedCount
+  $('contextLabel').textContent = activeTab === 'english' ? '卡片' : '已完成'
   document.body.classList.toggle('light', state.settings.theme === 'light' || (state.settings.theme === 'system' && !systemTheme.matches))
   $('app').classList.toggle('compact', state.settings.compact)
   $('app').dataset.view = activeTab

@@ -44,7 +44,9 @@ function normalizeState(saved) {
     createdAt: card.createdAt,
     updatedAt: Number.isFinite(card.updatedAt) ? card.updatedAt : card.createdAt,
     schedule: Object.fromEntries([...scheduleNumbers, 'last_review'].map(key => [key, card.schedule[key] ?? null])),
-    reviews: Array.isArray(card.reviews) ? card.reviews.filter(log => log && ['again', 'hard', 'good', 'easy'].includes(log.rating) && Number.isFinite(log.reviewedAt) && Number.isFinite(log.nextDueAt)).slice(-100) : []
+    reviews: Array.isArray(card.reviews) ? card.reviews.filter(log => log && ['again', 'hard', 'good', 'easy'].includes(log.rating) && Number.isFinite(log.reviewedAt) && Number.isFinite(log.nextDueAt)).slice(-100).map(log => ({rating: log.rating, reviewedAt: log.reviewedAt, nextDueAt: log.nextDueAt, earnedXp: Number.isInteger(log.earnedXp) && log.earnedXp >= 0 && log.earnedXp <= 5 ? log.earnedXp : 0})) : [],
+    earnedXp: Number.isInteger(card.earnedXp) && card.earnedXp >= 0 ? card.earnedXp : 0,
+    lastXpDay: typeof card.lastXpDay === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(card.lastXpDay) ? card.lastXpDay : ''
   })) : []
   const reminder = saved.reviewReminder && typeof saved.reviewReminder === 'object' ? saved.reviewReminder : {}
   const reviewReminder = {day: typeof reminder.day === 'string' ? reminder.day : '', count: Number.isInteger(reminder.count) && reminder.count >= 0 ? reminder.count : 0, lastAt: Number.isFinite(reminder.lastAt) ? reminder.lastAt : 0}
@@ -55,7 +57,7 @@ function normalizeState(saved) {
     tasks,
     cards,
     reviewReminder,
-    xp: completed.reduce((total, task) => total + (task.earnedXp || 20), 0),
+    xp: completed.reduce((total, task) => total + (task.earnedXp || 20), 0) + cards.reduce((total, card) => total + card.earnedXp, 0),
     completedCount: completed.length,
     settings,
     windowPosition

@@ -81,14 +81,37 @@ test('English cards keep their FSRS schedule through persistence', () => {
     const state = defaults()
     const now = Date.now()
     const result = reviewCard(createReviewState(now), 'hard', now)
-    state.cards.push({id: 'word', front: 'take notes', back: '记笔记', example: '', createdAt: now, updatedAt: now, schedule: result.schedule, reviews: [result.log]})
+    state.tasks.push({id: 'task', title: '写周报', createdAt: now, dueAt: now + 1000, completedAt: now + 2000, earnedXp: 20})
+    state.cards.push({id: 'word', front: 'take notes', back: '记笔记', example: '', createdAt: now, updatedAt: now, schedule: result.schedule, reviews: [{...result.log, earnedXp: 5}], earnedXp: 5, lastXpDay: new Date(now).toLocaleDateString('en-CA')})
     state.settings.englishShortcut = 'Control+Alt+E'
     saveState(file, state)
     const restored = loadState(file)
     assert.equal(restored.cards[0].schedule.due, result.schedule.due)
     assert.equal(restored.cards[0].reviews[0].rating, 'hard')
+    assert.equal(restored.cards[0].reviews[0].earnedXp, 5)
+    assert.equal(restored.cards[0].earnedXp, 5)
+    assert.equal(restored.xp, 25)
     assert.equal(restored.settings.englishShortcut, 'Control+Alt+E')
   } finally {
     fs.rmSync(directory, {recursive: true, force: true})
   }
+})
+
+test('older English cards do not invent XP when restored', () => {
+  const now = Date.now()
+  const card = {id: 'old', front: 'hello', back: '你好', createdAt: now, schedule: createReviewState(now), reviews: []}
+  const restored = normalizeState({tasks: [], cards: [card], xp: 999})
+  assert.equal(restored.cards[0].earnedXp, 0)
+  assert.equal(restored.cards[0].lastXpDay, '')
+  assert.equal(restored.xp, 0)
+})
+
+test('capping review history does not erase earlier English XP', () => {
+  const now = Date.now()
+  const reviews = Array.from({length: 101}, (_, index) => ({rating: 'good', reviewedAt: now + index, nextDueAt: now + index + 1000, earnedXp: 5}))
+  const card = {id: 'long-lived', front: 'persist', back: '坚持', createdAt: now, schedule: createReviewState(now), reviews, earnedXp: 505, lastXpDay: new Date(now).toLocaleDateString('en-CA')}
+  const restored = normalizeState({tasks: [], cards: [card]})
+  assert.equal(restored.cards[0].reviews.length, 100)
+  assert.equal(restored.cards[0].earnedXp, 505)
+  assert.equal(restored.xp, 505)
 })

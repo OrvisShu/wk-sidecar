@@ -57,7 +57,7 @@ document.querySelectorAll('[data-rating]').forEach(button => button.addEventList
   const id = currentCard.id
   try {
     const result = await window.sidecar.reviewEnglish(id, button.dataset.rating)
-    showMessage(`下次复习：${new Intl.DateTimeFormat('zh-CN', {month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'}).format(result.nextDueAt)}`)
+    showMessage(`${result.xp ? `+${result.xp} XP · ` : ''}下次复习：${new Intl.DateTimeFormat('zh-CN', {month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit'}).format(result.nextDueAt)}`)
   } catch (error) { showMessage(error.message) }
 }))
 
