@@ -30,9 +30,9 @@ function render() {
   if (mode === 'review') renderReview()
 }
 
-$('closeButton').addEventListener('click', () => window.close())
-$('cancelButton').addEventListener('click', () => window.close())
-document.addEventListener('keydown', event => { if (event.key === 'Escape') window.close() })
+$('closeButton').addEventListener('click', () => window.sidecar.hideEnglish())
+$('cancelButton').addEventListener('click', () => window.sidecar.hideEnglish())
+document.addEventListener('keydown', event => { if (event.key === 'Escape') window.sidecar.hideEnglish() })
 $('cardForm').addEventListener('submit', async event => {
   event.preventDefault()
   const input = {front: $('front').value.trim(), back: $('back').value.trim(), example: $('example').value.trim()}
@@ -40,7 +40,8 @@ $('cardForm').addEventListener('submit', async event => {
   try {
     if (mode === 'edit') await window.sidecar.updateEnglish(cardId, input)
     else await window.sidecar.addEnglish(input)
-    window.close()
+    if (mode === 'capture') $('cardForm').reset()
+    await window.sidecar.hideEnglish()
   } catch (error) { showMessage(error.message) }
 })
 $('revealButton').addEventListener('click', () => {
@@ -70,6 +71,13 @@ if (mode === 'review') {
   $('saveButton').textContent = '保存修改'
 }
 window.sidecar.onStateChanged(next => { state = next; render() })
+window.sidecar.onEnglishOpened(() => {
+  if (mode === 'capture') {
+    $('cardForm').reset()
+    showMessage('')
+    $('front').focus()
+  } else if (mode === 'review') render()
+})
 window.sidecar.getState().then(initial => {
   state = initial
   if (mode === 'edit') {

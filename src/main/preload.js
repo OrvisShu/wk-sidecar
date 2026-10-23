@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('sidecar', {
   canOpenAtLogin: process.platform === 'win32' || process.platform === 'darwin',
   getState: () => ipcRenderer.invoke('state:get'),
   getShortcutStatus: () => ipcRenderer.invoke('english:shortcut-status'),
+  hideEnglish: () => ipcRenderer.invoke('english:hide'),
   openEnglish: (mode, id) => ipcRenderer.invoke('english:open', mode, id),
   addEnglish: input => ipcRenderer.invoke('english:add', input),
   updateEnglish: (id, input) => ipcRenderer.invoke('english:update', id, input),
@@ -23,5 +24,6 @@ contextBridge.exposeInMainWorld('sidecar', {
   revealDock: () => ipcRenderer.invoke('window:dock-reveal'),
   leaveDock: () => ipcRenderer.invoke('window:dock-leave'),
   hideWindow: () => ipcRenderer.invoke('window:hide'),
+  onEnglishOpened: callback => ipcRenderer.on('english:opened', callback),
   onStateChanged: callback => ipcRenderer.on('state:changed', (_event, state) => callback(state))
 })

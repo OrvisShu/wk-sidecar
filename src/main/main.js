@@ -17,6 +17,7 @@ const PRAISE = ['漂亮的一击！事情又向前推进了。', '干得好，�
 let win
 let tray
 let englishWin
+let englishView
 let dockWin
 let dockHandleEdge = null
 let dockRevealed = false
@@ -65,23 +66,35 @@ function publish() {
 }
 
 function showEnglishWindow(mode = 'capture', id = '') {
-  const query = new URLSearchParams({mode, id}).toString()
+  const height = mode === 'review' ? 420 : 450
+  const title = mode === 'review' ? '英语复习' : mode === 'edit' ? '编辑英语卡片' : '速记英语'
   if (englishWin && !englishWin.isDestroyed()) {
-    if (englishWin.webContents.getURL().includes(query)) {
-      englishWin.show()
-      englishWin.focus()
+    if (englishView?.mode === mode && englishView.id === id) {
+      if (!englishWin.webContents.isLoading()) {
+        const wasVisible = englishWin.isVisible()
+        englishWin.show()
+        englishWin.focus()
+        if (!wasVisible) englishWin.webContents.send('english:opened')
+      }
       return
     }
-    englishWin.close()
+    englishView = {mode, id}
+    englishWin.hide()
+    englishWin.setMinimumSize(430, height)
+    englishWin.setSize(430, height)
+    englishWin.setTitle(title)
+    englishWin.loadFile(rendererPath('english', 'english.html'), {query: {mode, id}})
+    return
   }
+  englishView = {mode, id}
   englishWin = new BrowserWindow({
     width: 430,
-    height: mode === 'review' ? 420 : 450,
+    height,
     minWidth: 430,
-    minHeight: mode === 'review' ? 420 : 450,
+    minHeight: height,
     frame: false,
     resizable: false,
-    title: mode === 'review' ? '英语复习' : mode === 'edit' ? '编辑英语卡片' : '速记英语',
+    title,
     icon: path.join(__dirname, '..', '..', 'assets', 'icon.png'),
     alwaysOnTop: true,
     show: false,
@@ -89,10 +102,26 @@ function showEnglishWindow(mode = 'capture', id = '') {
     webPreferences: {preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false}
   })
   englishWin.setOpacity(state.settings.opacity)
-  englishWin.loadFile(rendererPath('english', 'english.html'), {query: {mode, id}})
-  englishWin.once('ready-to-show', () => { englishWin.show(); englishWin.focus() })
   const created = englishWin
-  englishWin.on('closed', () => { if (englishWin === created) englishWin = null })
+  created.on('close', event => {
+    if (!quitting) {
+      event.preventDefault()
+      created.hide()
+    }
+  })
+  created.webContents.on('did-finish-load', () => {
+    if (englishWin !== created) return
+    created.show()
+    created.focus()
+    created.webContents.send('english:opened')
+  })
+  created.on('closed', () => {
+    if (englishWin === created) {
+      englishWin = null
+      englishView = null
+    }
+  })
+  created.loadFile(rendererPath('english', 'english.html'), {query: {mode, id}})
 }
 
 function registerEnglishShortcut(accelerator) {
@@ -465,6 +494,9 @@ function notifyEnglishReview() {
 function registerIpc() {
   ipcMain.handle('state:get', () => state)
   ipcMain.handle('english:shortcut-status', () => shortcutRegistered)
+  ipcMain.handle('english:hide', event => {
+    if (englishWin && !englishWin.isDestroyed() && event.sender === englishWin.webContents) englishWin.hide()
+  })
   ipcMain.handle('english:open', (_event, mode, id = '') => {
     if (!['capture', 'review', 'edit'].includes(mode) || mode === 'edit' && !state.cards.some(card => card.id === id)) throw new Error('无效窗口类型')
     showEnglishWindow(mode, id)
@@ -664,4 +696,5 @@ if (!app.requestSingleInstanceLock()) {
   })
 }
 
+app.on('before-quit', () => { quitting = true })
 app.on('will-quit', () => globalShortcut.unregisterAll())
