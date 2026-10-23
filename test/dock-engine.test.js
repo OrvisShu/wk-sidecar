@@ -1,6 +1,6 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
-const {HANDLE_SIZE, edgeForBounds, expandedPosition, handlePosition} = require('../src/shared/dock-engine')
+const {HANDLE_SIZE, edgeForBounds, expandedPosition, handlePosition, transitionX} = require('../src/shared/dock-engine')
 
 test('detects the nearest left or right work area edge', () => {
   const area = {x: -1920, y: 0, width: 1920, height: 1040}
@@ -15,4 +15,10 @@ test('keeps the expanded window and handle inside the chosen display', () => {
   assert.deepEqual(expandedPosition('left', area, size, 9999), {x: 1920, y: 290})
   assert.deepEqual(expandedPosition('right', area, size, -100), {x: 2810, y: 80})
   assert.deepEqual(handlePosition('right', area, size, 290), {x: 3200 - HANDLE_SIZE.width, y: 591})
+})
+
+test('dock transition keeps valid coordinates when the native starting position is unavailable', () => {
+  assert.equal(transitionX(undefined, -88, 0.5), -88)
+  assert.equal(transitionX(0, -88, 0.5), -44)
+  assert.equal(transitionX(-88, 0, 0.5), -44)
 })

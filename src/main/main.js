@@ -5,7 +5,7 @@ const zlib = require('zlib')
 const {STAGES, HOUR, stageFor, nextReminderAt} = require('../shared/task-engine')
 const {loadState, saveState: writeState, normalizeState} = require('./state-store')
 const {createReviewState, reviewCard, reviewReward, dueCards, shouldPrompt} = require('../shared/english-engine')
-const {HANDLE_SIZE, edgeForBounds, expandedPosition, handlePosition} = require('../shared/dock-engine')
+const {HANDLE_SIZE, edgeForBounds, expandedPosition, handlePosition, transitionX} = require('../shared/dock-engine')
 
 const rendererPath = (...parts) => path.join(__dirname, '..', 'renderer', ...parts)
 
@@ -151,6 +151,11 @@ function trayImage() {
 }
 
 function moveMainWindow(position) {
+  const coordinateIsValid = value => Number.isInteger(value) && value >= -2147483648 && value <= 2147483647
+  if (!coordinateIsValid(position.x) || !coordinateIsValid(position.y)) {
+    console.error('Skipped invalid window position:', position)
+    return
+  }
   const [x, y] = win.getPosition()
   if (x === position.x && y === position.y) return
   programmaticPosition = position
@@ -165,20 +170,27 @@ function cancelDockAnimation() {
 }
 
 function animateDock(reveal, focus = false) {
+  const previousX = dockAnimation?.currentX
   cancelDockAnimation()
-  const expanded = state.windowPosition
+  const saved = state.windowPosition || win.getBounds()
+  const workArea = screen.getDisplayNearestPoint(saved).workArea
+  const position = expandedPosition(state.windowDock, workArea, win.getBounds(), saved.y)
+  const expanded = {x: Math.round(position.x), y: Math.round(position.y)}
   const tuckedX = expanded.x + (state.windowDock === 'left' ? -DOCK_TRAVEL : DOCK_TRAVEL)
-  if (!win.isVisible()) {
+  const wasVisible = win.isVisible()
+  const nativeX = wasVisible ? win.getPosition()[0] : tuckedX
+  const startX = Number.isFinite(previousX) ? previousX : Number.isFinite(nativeX) ? nativeX : expanded.x
+  if (!wasVisible) {
     moveMainWindow({x: tuckedX, y: expanded.y})
     win.setOpacity(0)
     win.showInactive()
   }
 
-  const [startX] = win.getPosition()
-  const startOpacity = win.getOpacity()
+  const nativeOpacity = win.getOpacity()
+  const startOpacity = Number.isFinite(nativeOpacity) ? nativeOpacity : (wasVisible ? state.settings.opacity : 0)
   const targetX = reveal ? expanded.x : tuckedX
   const startedAt = Date.now()
-  const animation = {timer: null}
+  const animation = {timer: null, currentX: startX}
   dockAnimation = animation
   animation.timer = setInterval(() => {
     if (dockAnimation !== animation || win.isDestroyed()) {
@@ -187,7 +199,8 @@ function animateDock(reveal, focus = false) {
     }
     const progress = Math.min((Date.now() - startedAt) / DOCK_TRANSITION_MS, 1)
     const eased = progress * progress * (3 - 2 * progress)
-    moveMainWindow({x: Math.round(startX + (targetX - startX) * eased), y: expanded.y})
+    animation.currentX = transitionX(startX, targetX, progress)
+    moveMainWindow({x: animation.currentX, y: expanded.y})
     win.setOpacity(startOpacity + ((reveal ? state.settings.opacity : 0) - startOpacity) * eased)
     if (progress < 1) return
 

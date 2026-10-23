@@ -26,4 +26,10 @@ function handlePosition(edge, workArea, size, expandedY) {
   }
 }
 
-module.exports = {HANDLE_SIZE, edgeForBounds, expandedPosition, handlePosition}
+function transitionX(start, end, progress) {
+  const origin = Number.isFinite(start) ? start : end
+  const eased = progress * progress * (3 - 2 * progress)
+  return Math.round(origin + (end - origin) * eased)
+}
+
+module.exports = {HANDLE_SIZE, edgeForBounds, expandedPosition, handlePosition, transitionX}
