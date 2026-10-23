@@ -32,6 +32,7 @@ function render() {
 
 $('closeButton').addEventListener('click', () => window.close())
 $('cancelButton').addEventListener('click', () => window.close())
+document.addEventListener('keydown', event => { if (event.key === 'Escape') window.close() })
 $('cardForm').addEventListener('submit', async event => {
   event.preventDefault()
   const input = {front: $('front').value.trim(), back: $('back').value.trim(), example: $('example').value.trim()}

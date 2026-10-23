@@ -56,9 +56,10 @@ function showEnglishWindow(mode = 'capture', id = '') {
   }
   englishWin = new BrowserWindow({
     width: 430,
-    height: mode === 'review' ? 480 : 530,
+    height: mode === 'review' ? 420 : 450,
     minWidth: 430,
-    minHeight: mode === 'review' ? 480 : 530,
+    minHeight: mode === 'review' ? 420 : 450,
+    frame: false,
     resizable: false,
     title: mode === 'review' ? '英语复习' : mode === 'edit' ? '编辑英语卡片' : '速记英语',
     icon: path.join(__dirname, 'assets', 'icon.png'),

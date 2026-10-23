@@ -9,12 +9,12 @@
 </head>
 <body>
   <main class="sheet">
-    <header><div class="heading"><span class="mark">✦</span><div><small>ENGLISH NOTES</small><h1 id="heading">速记英语</h1></div></div><button id="closeButton" class="icon" type="button" title="关闭" aria-label="关闭"><img src="node_modules/lucide-static/icons/x.svg" alt=""></button></header>
+    <header class="titlebar"><div class="heading"><span class="mark">✦</span><h1 id="heading">速记英语</h1></div><button id="closeButton" class="icon" type="button" title="关闭" aria-label="关闭"><img src="node_modules/lucide-static/icons/x.svg" alt=""></button></header>
     <form id="cardForm">
-      <label for="front">英语内容 <span>单词 / 短语 / 句子</span></label>
-      <textarea id="front" maxlength="300" rows="3" placeholder="What would you like to remember?" required></textarea>
-      <label for="back">中文释义 <span>可以稍后补充</span></label>
-      <textarea id="back" maxlength="500" rows="3" placeholder="它是什么意思？"></textarea>
+      <label for="front">英语内容 <span>单词 · 短语 · 句子</span></label>
+      <textarea id="front" maxlength="300" rows="2" placeholder="输入刚遇到的英语内容" required></textarea>
+      <label for="back">中文释义 <span>可稍后补充</span></label>
+      <textarea id="back" maxlength="500" rows="2" placeholder="写下你的理解"></textarea>
       <label for="example">例句或语境 <span>选填</span></label>
       <input id="example" maxlength="500" placeholder="在哪个语境下遇到的？">
       <div class="form-actions"><button type="button" id="cancelButton">取消</button><button type="submit" id="saveButton">保存卡片</button></div>
