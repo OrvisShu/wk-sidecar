@@ -11,6 +11,8 @@ const rendererPath = (...parts) => path.join(__dirname, '..', 'renderer', ...par
 
 const EXPANDED = {width: 390, height: 690}
 const COMPACT = {width: 350, height: 174}
+const DOCK_TRANSITION_MS = 220
+const DOCK_TRAVEL = 88
 const PRAISE = ['漂亮的一击！事情又向前推进了。', '干得好，这只怪物已经被你收服。', '任务完成，今天的你又强了一点。', '清掉一件心事，继续保持节奏。']
 let win
 let tray
@@ -19,6 +21,7 @@ let dockWin
 let dockHandleEdge = null
 let dockRevealed = false
 let dockCollapseTimer
+let dockAnimation
 let moveTimer
 let programmaticPosition = null
 let manuallyHidden = false
@@ -155,6 +158,56 @@ function moveMainWindow(position) {
   setTimeout(() => { if (programmaticPosition === position) programmaticPosition = null }, 150)
 }
 
+function cancelDockAnimation() {
+  if (!dockAnimation) return
+  clearInterval(dockAnimation.timer)
+  dockAnimation = null
+}
+
+function animateDock(reveal, focus = false) {
+  cancelDockAnimation()
+  const expanded = state.windowPosition
+  const tuckedX = expanded.x + (state.windowDock === 'left' ? -DOCK_TRAVEL : DOCK_TRAVEL)
+  if (!win.isVisible()) {
+    moveMainWindow({x: tuckedX, y: expanded.y})
+    win.setOpacity(0)
+    win.showInactive()
+  }
+
+  const [startX] = win.getPosition()
+  const startOpacity = win.getOpacity()
+  const targetX = reveal ? expanded.x : tuckedX
+  const startedAt = Date.now()
+  const animation = {timer: null}
+  dockAnimation = animation
+  animation.timer = setInterval(() => {
+    if (dockAnimation !== animation || win.isDestroyed()) {
+      clearInterval(animation.timer)
+      return
+    }
+    const progress = Math.min((Date.now() - startedAt) / DOCK_TRANSITION_MS, 1)
+    const eased = progress * progress * (3 - 2 * progress)
+    moveMainWindow({x: Math.round(startX + (targetX - startX) * eased), y: expanded.y})
+    win.setOpacity(startOpacity + ((reveal ? state.settings.opacity : 0) - startOpacity) * eased)
+    if (progress < 1) return
+
+    clearInterval(animation.timer)
+    if (reveal) {
+      win.setOpacity(state.settings.opacity)
+      if (dockWin && !dockWin.isDestroyed()) dockWin.hide()
+      if (focus) win.focus()
+    } else {
+      win.hide()
+      moveMainWindow(expanded)
+      win.setOpacity(state.settings.opacity)
+      ensureDockHandle()
+      if (dockWin && !dockWin.isDestroyed() && !dockWin.webContents.isLoading()) dockWin.showInactive()
+    }
+    dockAnimation = null
+    if (reveal && !focus) scheduleDockCollapse()
+  }, 16)
+}
+
 function closeDockHandle() {
   if (dockWin && !dockWin.isDestroyed()) dockWin.close()
   dockWin = null
@@ -194,20 +247,24 @@ function ensureDockHandle() {
 
 function collapseDock() {
   if (!state.windowDock || manuallyHidden || !win || win.isDestroyed()) return
+  if (!dockRevealed && !dockAnimation) return
   clearTimeout(dockCollapseTimer)
   dockRevealed = false
-  win.hide()
   ensureDockHandle()
   if (dockWin && !dockWin.isDestroyed() && !dockWin.webContents.isLoading()) dockWin.showInactive()
+  animateDock(false)
 }
 
 function revealDock(focus = false) {
   if (!win || win.isDestroyed()) return
   clearTimeout(dockCollapseTimer)
+  if (dockRevealed && !dockAnimation && win.isVisible()) {
+    if (dockWin && !dockWin.isDestroyed()) dockWin.hide()
+    if (focus) { win.show(); win.focus() }
+    return
+  }
   dockRevealed = true
-  if (dockWin && !dockWin.isDestroyed()) dockWin.hide()
-  if (focus) { win.show(); win.focus() }
-  else win.showInactive()
+  animateDock(true, focus)
 }
 
 function scheduleDockCollapse() {
@@ -233,6 +290,10 @@ function showWindow() {
 function hideToTray() {
   manuallyHidden = true
   clearTimeout(dockCollapseTimer)
+  cancelDockAnimation()
+  win.setOpacity(state.settings.opacity)
+  if (state.windowDock) moveMainWindow(state.windowPosition)
+  dockRevealed = false
   win.hide()
   if (dockWin && !dockWin.isDestroyed()) dockWin.hide()
 }
@@ -240,12 +301,15 @@ function hideToTray() {
 function dockWindow(edge) {
   clearTimeout(moveTimer)
   moveTimer = null
+  cancelDockAnimation()
+  win.setOpacity(state.settings.opacity)
+  const wasVisible = win.isVisible()
   const bounds = win.getBounds()
   const workArea = screen.getDisplayMatching(bounds).workArea
   const position = expandedPosition(edge, workArea, bounds, bounds.y)
   state.windowDock = edge
   state.windowPosition = position
-  dockRevealed = true
+  dockRevealed = wasVisible
   moveMainWindow(position)
   ensureDockHandle()
   revealDock()
@@ -258,6 +322,8 @@ function undockWindow(moveInside = false) {
   const edge = state.windowDock
   if (!edge) return
   clearTimeout(dockCollapseTimer)
+  cancelDockAnimation()
+  win.setOpacity(state.settings.opacity)
   state.windowDock = null
   dockRevealed = false
   closeDockHandle()
@@ -273,12 +339,18 @@ function undockWindow(moveInside = false) {
 
 function repositionDock() {
   if (!state.windowDock || !win || win.isDestroyed()) return
+  cancelDockAnimation()
+  win.setOpacity(state.settings.opacity)
   const saved = state.windowPosition || win.getBounds()
   const workArea = screen.getDisplayNearestPoint(saved).workArea
   const position = expandedPosition(state.windowDock, workArea, win.getBounds(), saved.y)
   moveMainWindow(position)
   state.windowPosition = position
   ensureDockHandle()
+  if (!dockRevealed) {
+    win.hide()
+    if (dockWin && !dockWin.isDestroyed() && !dockWin.webContents.isLoading() && !manuallyHidden) dockWin.showInactive()
+  } else if (dockWin && !dockWin.isDestroyed()) dockWin.hide()
   saveState()
 }
 
@@ -320,6 +392,7 @@ function createWindow() {
   })
   win.on('blur', scheduleDockCollapse)
   win.on('move', () => {
+    if (dockAnimation) return
     const [x, y] = win.getPosition()
     if (programmaticPosition?.x === x && programmaticPosition?.y === y) return
     if (state.windowDock && !dockRevealed) return
@@ -523,6 +596,8 @@ function registerIpc() {
       const size = compact ? COMPACT : EXPANDED
       clearTimeout(moveTimer)
       moveTimer = null
+      cancelDockAnimation()
+      win.setOpacity(state.settings.opacity)
       win.setMinimumSize(Math.min(COMPACT.width, EXPANDED.width), Math.min(COMPACT.height, EXPANDED.height))
       win.setMaximumSize(Math.max(COMPACT.width, EXPANDED.width), Math.max(COMPACT.height, EXPANDED.height))
       win.setSize(size.width, size.height)
@@ -533,7 +608,13 @@ function registerIpc() {
         : {x: Math.min(Math.max(bounds.x, workArea.x), workArea.x + workArea.width - size.width), y: Math.min(Math.max(bounds.y, workArea.y), workArea.y + workArea.height - size.height)}
       moveMainWindow(position)
       state.windowPosition = position
-      if (state.windowDock) ensureDockHandle()
+      if (state.windowDock) {
+        ensureDockHandle()
+        if (!dockRevealed) {
+          win.hide()
+          if (dockWin && !dockWin.isDestroyed() && !dockWin.webContents.isLoading() && !manuallyHidden) dockWin.showInactive()
+        } else if (dockWin && !dockWin.isDestroyed()) dockWin.hide()
+      }
     })
   })
   ipcMain.handle('window:hide', () => hideToTray())
