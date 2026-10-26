@@ -180,16 +180,30 @@ function trayImage() {
 }
 
 function moveMainWindow(position) {
-  const coordinateIsValid = value => Number.isInteger(value) && value >= -2147483648 && value <= 2147483647
-  if (!coordinateIsValid(position.x) || !coordinateIsValid(position.y)) {
-    console.error('Skipped invalid window position:', position)
-    return
+  if (!win || win.isDestroyed() || !position) return false
+  const normalizeCoordinate = value => {
+    const numeric = Number(value)
+    return Number.isFinite(numeric) && numeric >= -2147483648 && numeric <= 2147483647 ? Math.round(numeric) : null
   }
-  const [x, y] = win.getPosition()
-  if (x === position.x && y === position.y) return
-  programmaticPosition = position
-  win.setPosition(position.x, position.y)
-  setTimeout(() => { if (programmaticPosition === position) programmaticPosition = null }, 150)
+  const x = normalizeCoordinate(position.x)
+  const y = normalizeCoordinate(position.y)
+  if (x === null || y === null) {
+    console.error('Skipped invalid window position:', position)
+    return false
+  }
+  const current = win.getPosition()
+  if (current[0] === x && current[1] === y) return true
+  const target = {x, y}
+  programmaticPosition = target
+  try {
+    win.setPosition(x, y)
+  } catch (error) {
+    programmaticPosition = null
+    console.error('Failed to move main window:', error)
+    return false
+  }
+  setTimeout(() => { if (programmaticPosition === target) programmaticPosition = null }, 150)
+  return true
 }
 
 function cancelDockAnimation() {
@@ -229,7 +243,11 @@ function animateDock(reveal, focus = false) {
     const progress = Math.min((Date.now() - startedAt) / DOCK_TRANSITION_MS, 1)
     const eased = progress * progress * (3 - 2 * progress)
     animation.currentX = transitionX(startX, targetX, progress)
-    moveMainWindow({x: animation.currentX, y: expanded.y})
+    if (!moveMainWindow({x: animation.currentX, y: expanded.y})) {
+      clearInterval(animation.timer)
+      if (dockAnimation === animation) dockAnimation = null
+      return
+    }
     win.setOpacity(startOpacity + ((reveal ? state.settings.opacity : 0) - startOpacity) * eased)
     if (progress < 1) return
 
@@ -262,7 +280,7 @@ function ensureDockHandle() {
   const workArea = screen.getDisplayMatching(bounds).workArea
   const position = handlePosition(state.windowDock, workArea, bounds, bounds.y)
   if (dockWin && !dockWin.isDestroyed() && dockHandleEdge === state.windowDock) {
-    dockWin.setPosition(position.x, position.y)
+    try { dockWin.setPosition(position.x, position.y) } catch (error) { console.error('Failed to move dock handle:', error) }
     return
   }
   closeDockHandle()
