@@ -3,7 +3,7 @@ const {packager} = require('@electron/packager')
 
 packager({
   dir: path.join(__dirname, '..'),
-  name: '打怪待办',
+  name: 'WK Sidecar',
   platform: 'win32',
   arch: 'x64',
   out: path.join(__dirname, '..', 'release'),

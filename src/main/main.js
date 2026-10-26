@@ -631,7 +631,7 @@ function registerIpc() {
   ipcMain.handle('window:dock-leave', () => scheduleDockCollapse())
   ipcMain.handle('data:open-folder', () => shell.openPath(path.dirname(dataPath)))
   ipcMain.handle('data:export', async () => {
-    const result = await dialog.showSaveDialog(win, {title: '导出待办数据', defaultPath: `打怪待办-${new Date().toISOString().slice(0, 10)}.json`, filters: [{name: 'JSON 文件', extensions: ['json']}]})
+    const result = await dialog.showSaveDialog(win, {title: '导出待办数据', defaultPath: `WK-Sidecar-${new Date().toISOString().slice(0, 10)}.json`, filters: [{name: 'JSON 文件', extensions: ['json']}]})
     if (result.canceled || !result.filePath) return false
     fs.writeFileSync(result.filePath, JSON.stringify(state, null, 2), 'utf8')
     return true
@@ -700,9 +700,9 @@ if (!app.requestSingleInstanceLock()) {
     screen.on('display-removed', repositionDock)
     registerEnglishShortcut(state.settings.englishShortcut)
     tray = new Tray(trayImage())
-    tray.setToolTip('打怪待办')
+    tray.setToolTip('WK Sidecar')
     tray.setContextMenu(Menu.buildFromTemplate([
-      {label: '打开打怪待办', click: showWindow},
+      {label: '打开 WK Sidecar', click: showWindow},
       {label: '退出', click: () => { quitting = true; app.quit() }}
     ]))
     tray.on('double-click', showWindow)

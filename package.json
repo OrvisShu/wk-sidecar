@@ -1,7 +1,7 @@
 {
   "name": "wk-sidecar",
-  "version": "1.0.3",
-  "description": "悬浮桌面的打怪待办助手",
+  "version": "1.1.0",
+  "description": "A floating work sidecar for tasks and English notes",
   "license": "MIT",
   "author": "Orvis",
   "type": "commonjs",
@@ -23,7 +23,7 @@
   },
   "build": {
     "appId": "com.orvis.worksidecar",
-    "productName": "打怪待办",
+    "productName": "WK Sidecar",
     "asar": true,
     "directories": {
       "output": "dist"
@@ -35,15 +35,15 @@
     ],
     "win": {
       "icon": "assets/icon.ico",
-      "artifactName": "打怪待办-Setup-${version}-${arch}.${ext}"
+      "artifactName": "WK-Sidecar-Setup-${version}-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "打怪待办",
-      "uninstallDisplayName": "打怪待办"
+      "shortcutName": "WK Sidecar",
+      "uninstallDisplayName": "WK Sidecar"
     }
   }
 }
